@@ -5,6 +5,16 @@ from datetime import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Gestão de Obra Pro", layout="wide")
+# --- CONFIGURAÇÃO DE APP PARA CELULAR ---
+st.markdown(
+    f"""
+    <link rel="manifest" href="https://raw.githubusercontent.com/Spadetto07/DISPONIBILIDADE-DE-EQUIPAMENTOS/main/static/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Obra CASP">
+    """,
+    unsafe_allow_html=True
+)
 
 # --- 1. BANCO DE DADOS ---
 ARQUIVO_FROTA = 'frota.json'
@@ -195,3 +205,4 @@ elif aba == "Gestão de Pessoal":
             colaboradores.remove(colab_remover)
             salvar_dados(ARQUIVO_COLAB, colaboradores)
             st.rerun()
+
