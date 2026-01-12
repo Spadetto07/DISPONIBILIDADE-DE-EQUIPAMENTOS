@@ -1,0 +1,16 @@
+{
+  "name": "Gestão de Obra CASP",
+  "short_name": "ObraCASP",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#075E54",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/4342/4342728.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
