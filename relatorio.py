@@ -33,4 +33,50 @@ def carregar_dados(arquivo, padrao):
         return padrao
 
 def salvar_dados(arquivo, dados):
-    with open(arquivo, 'w', encoding='utf-8')
+    # A correção principal foi garantir o ':' aqui no final da linha abaixo
+    with open(arquivo, 'w', encoding='utf-8') as f: 
+        json.dump(dados, f, indent=4, ensure_ascii=False)
+
+def formatar_prefixo(nome):
+    return nome.split(" ")[0].replace("-", " ")
+
+def limpar_nome_colab(nome_completo):
+    partes = nome_completo.split()
+    return " ".join(partes[:2]) if len(partes) >= 2 else nome_completo
+
+# Carregar dados iniciais
+frota = carregar_dados(ARQUIVO_FROTA, FROTA_PADRAO)
+colaboradores = sorted(carregar_dados(ARQUIVO_COLAB, COLAB_PADRAO))
+lista_completa_equip = sorted([item for sublist in frota.values() for item in sublist])
+
+# --- 2. NAVEGAÇÃO LATERAL ---
+st.sidebar.title("🏗️ Menu Principal")
+aba = st.sidebar.radio("Escolha o Relatório:", ["Disponibilidade", "Equipamentos Utilizados", "Gestão de Frota", "Gestão de Pessoal"])
+
+# --- ABA: DISPONIBILIDADE ---
+if aba == "Disponibilidade":
+    st.title("🚜 Relatório de Disponibilidade")
+    relatorio_dict = {}
+    for categoria, lista in frota.items():
+        with st.expander(f"📂 {categoria}", expanded=False):
+            itens = []
+            for equip in lista:
+                nome_limpo = formatar_prefixo(equip)
+                if st.checkbox(f"{nome_limpo}", key=f"disp_{equip}"):
+                    obs = st.text_input(f"Defeito para {nome_limpo}", key=f"obs_{equip}")
+                    itens.append(f"❌ {nome_limpo} - {obs}" if obs else f"✅ {nome_limpo}")
+            if itens: relatorio_dict[categoria] = itens
+
+    if st.button("GERAR RELATÓRIO DISPONIBILIDADE"):
+        agora = datetime.now().strftime("%d/%m/%Y %H:%M")
+        texto = f"DISPONIBILIDADE DE EQUIPAMENTOS - {agora}\n\n"
+        for cat, linhas in relatorio_dict.items():
+            texto += f"{cat}\n" + "\n".join(linhas) + "\n\n"
+        st.code(texto, language="text")
+
+# --- ABA: UTILIZADOS ---
+elif aba == "Equipamentos Utilizados":
+    st.title("📋 Relação de Equipamentos Utilizados")
+    
+    col1, col2, col3 = st.columns(3)
+    with col1: saudacao =
