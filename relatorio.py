@@ -21,16 +21,13 @@ FROTA_PADRAO = {
     "PLANTAS": ["ALV-001", "CMB-002", "CMP-001", "USC-001"]
 }
 
-# Lista com todos os colaboradores das fotos enviadas
 COLAB_PADRAO = [
     "", "ADILSON DE JESUS SANTOS", "HANDREY FRITZ SERAFIM", "JONATAS FAGUNDES DA COSTA", 
     "PAULO SILAS PONATH", "JOAO VICTOR OLIVEIRA CORATO GABRIEL", "JAMES RIBEIRO CARNEIRO", 
     "FELIPE DE SOUZA BISPO", "JOSE CICERO CORREIA DA SILVA", "HIGOR PEREIRA SILVA DE JESUS", 
     "JOAO MARCOS BARONE DE SOUSA", "FELIPE ROCHA PEREIRA", "PAULO HENRIQUE OLIVEIRA DOS SANTOS", 
     "RENATO MARQUES CAMPOREZ", "IGOR SÁ", "JUCELI DA SOLEDADE OLIVEIRA", "VINICIUS DE SOUZA SPADETO",
-    "ADEILTON ARAUJO SANTOS", "ELTON CANALLI DE OLIVEIRA", "GILMAR DIAS OLIVEIRA", 
-    "MATEUS SILVA BONIM", "JEFFERSON ALVES DE OLIVEIRA", "NILDERLEI HENRIQUE ALVARENGA", 
-    "ALEXANDRO BATISTA COSTA", "RAFAEL BARCELLOS", "LUCAS PORTO", "KHAYO", "VANDERLEI"
+    "ALEXANDRO BATISTA COSTA", "RAFAEL BARCELLOS", "LUCAS NASCIMENTO", "FHELIPE SILVA", "LEONILSON SILVA"
 ]
 
 def carregar_dados(arquivo, padrao):
@@ -38,6 +35,10 @@ def carregar_dados(arquivo, padrao):
     try:
         with open(arquivo, 'r', encoding='utf-8') as f: return json.load(f)
     except: return padrao
+
+def salvar_dados(arquivo, dados):
+    with open(arquivo, 'w', encoding='utf-8') as f:
+        json.dump(dados, f, indent=4, ensure_ascii=False)
 
 def formatar_prefixo(nome):
     return nome.split(" ")[0].replace("-", " ")
@@ -57,21 +58,20 @@ frota = carregar_dados(ARQUIVO_FROTA, FROTA_PADRAO)
 colaboradores = sorted(carregar_dados(ARQUIVO_COLAB, COLAB_PADRAO))
 lista_total = sorted([item for sublist in frota.values() for item in sublist])
 
-# --- INTERFACE ---
-st.sidebar.title("🏗️ Menu")
-aba = st.sidebar.radio("Escolha:", ["Equipamentos Utilizados", "Disponibilidade", "Gestão"])
+# --- NAVEGAÇÃO ---
+aba = st.sidebar.radio("Escolha o Relatório:", ["Equipamentos Utilizados", "Disponibilidade", "Gestão"])
 
+# --- 1. EQUIPAMENTOS UTILIZADOS (MODELO DETALHADO) ---
 if aba == "Equipamentos Utilizados":
-    st.title("📋 Relação de Equipamentos")
+    st.title("📋 Relação de Equipamentos Utilizados")
     
     col1, col2, col3 = st.columns(3)
     with col1: saudacao = st.selectbox("Saudação", ["Bom dia!!", "Boa tarde!!", "Boa noite!!"])
     with col2: letra = st.selectbox("Letra", ["A", "B", "C", "D"])
     with col3: turno = st.selectbox("Turno", ["06:00 às 18:00", "18:00 às 06:00"])
 
-    st.subheader("👥 Equipe")
-    exp1 = st.expander("Definir Responsáveis", expanded=True)
-    with exp1:
+    st.subheader("👥 Equipe e Setores")
+    with st.expander("Definir Colaboradores por Função", expanded=True):
         c1, c2 = st.columns(2)
         with c1:
             sup_casp = st.selectbox("CASP - Supervisor", colaboradores)
@@ -92,55 +92,70 @@ if aba == "Equipamentos Utilizados":
         exec2_task = st.text_input("Tarefa 2", value="Limpeza pelo pátio 6, dando prioridade às canaletas.")
 
     st.markdown("---")
-    st.subheader("🚜 Equipamentos")
+    st.subheader("🚜 Seleção de Máquinas")
     disp = lista_total.copy()
     u24 = st.multiselect("(24 horas)", disp); disp = [e for e in disp if e not in u24]
     u12 = st.multiselect("(12 horas)", disp); disp = [e for e in disp if e not in u12]
-    uadm = st.multiselect("(ADM)", disp)
+    uadm = st.multiselect("(ADM)", disp); disp = [e for e in disp if e not in uadm]
+    uev = st.multiselect("(EVENTUAL)", disp)
 
-    if st.button("GERAR RELATÓRIO COMPLETO"):
+    if st.button("GERAR RELATÓRIO WHATSAPP"):
         txt = f"{saudacao}\nCom segurança.\n\n{data_em_portugues()}\n\nSegue a relação de equipamentos utilizados:\n\n"
         txt += f"Letra: {letra}\nTurno: {turno}\n\n"
         
-        # Bloco Equipe
         if sup_casp or ctrl_casp:
             txt += "CASP\n"
             if sup_casp: txt += f"Supervisor: {limpar_nome_colab(sup_casp)}\n"
             if ctrl_casp: txt += f"Controlador: {limpar_nome_colab(ctrl_casp)}\n"
             txt += "\n"
-            
         if enc_c8 or ctrl_c8:
             txt += "CANTEIRO 8\n"
             if enc_c8: txt += f"Encarregado: {limpar_nome_colab(enc_c8)}\n"
             if ctrl_c8: txt += f"Controlador: {limpar_nome_colab(ctrl_c8)}\n"
             txt += "\n"
-            
-        if enc_pas:
-            txt += f"PAS\nEncarregado: {limpar_nome_colab(enc_pas)}\n\n"
-            
+        if enc_pas: txt += f"PAS\nEncarregado: {limpar_nome_colab(enc_pas)}\n\n"
         if exec1_nome or exec2_nome:
             txt += "EXECUTADORES - ADM\n"
-            if exec1_nome: txt += f"{limpar_nome_colab(exec1_nome).split()[0]}: {exec1_task}\n"
-            if exec2_nome: txt += f"{limpar_nome_colab(exec2_nome).split()[0]}: {exec2_task}\n"
+            if exec1_nome: txt += f"{limpar_nome_colab(exec1_nome)}: {exec1_task}\n"
+            if exec2_nome: txt += f"{limpar_nome_colab(exec2_nome)}: {exec2_task}\n"
             txt += "\n"
+        if ctrl_bacia: txt += f"CONTROLADOR DA BACIA: {limpar_nome_colab(ctrl_bacia)}\n\n"
             
-        if ctrl_bacia:
-            txt += f"CONTROLADOR DA BACIA: {limpar_nome_colab(ctrl_bacia)}\n\n"
-            
-        # Bloco Equipamentos
-        for tit, lista in [("(24 horas)", u24), ("(12 horas)", u12), ("(ADM)", uadm)]:
+        for tit, lista in [("(24 horas)", u24), ("(12 horas)", u12), ("(ADM)", uadm), ("(EVENTUAL)", uev)]:
             if lista:
-                txt += f"{tit}\n\n"
-                for e in lista: txt += f"✅ {e.replace('-', ' ')} CASP\n"
+                txt += f"{tit}\n"
+                for e in lista: txt += f"✅ {formatar_prefixo(e)} CASP\n"
                 txt += "\n"
-                
         st.code(txt, language="text")
 
-# --- MANTENDO AS OUTRAS ABAS SIMPLES ---
+# --- 2. DISPONIBILIDADE (TOTALMENTE RECUPERADA) ---
 elif aba == "Disponibilidade":
-    st.title("🚜 Disponibilidade")
-    st.info("Selecione os equipamentos que estão com defeito.")
-    # Lógica de disponibilidade aqui...
+    st.title("🚜 Relatório de Disponibilidade")
+    rel_d = {}
+    for cat, lista in frota.items():
+        with st.expander(f"📂 {cat}", expanded=False):
+            itens = []
+            for e in lista:
+                tag = formatar_prefixo(e)
+                if st.checkbox(f"{tag}", key=f"disp_{e}"):
+                    obs = st.text_input(f"Defeito para {tag}", key=f"obs_{e}")
+                    itens.append(f"❌ {tag} - {obs}" if obs else f"✅ {tag}")
+            if itens: rel_d[cat] = itens
+    if st.button("GERAR RELATÓRIO DISPONIBILIDADE"):
+        texto = f"DISPONIBILIDADE DE EQUIPAMENTOS - {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
+        for c, l in rel_d.items(): texto += f"{c}\n" + "\n".join(l) + "\n\n"
+        st.code(texto, language="text")
+
+# --- 3. GESTÃO ---
 elif aba == "Gestão":
     st.title("⚙️ Gestão de Dados")
-    st.write("Use para adicionar novos nomes ou máquinas.")
+    tab1, tab2 = st.tabs(["Equipamentos", "Colaboradores"])
+    with tab1:
+        cat_add = st.selectbox("Categoria", list(frota.keys()))
+        new_eq = st.text_input("Novo Equipamento")
+        if st.button("Adicionar Equipamento"):
+            frota[cat_add].append(new_eq); salvar_dados(ARQUIVO_FROTA, frota); st.rerun()
+    with tab2:
+        new_col = st.text_input("Novo Colaborador")
+        if st.button("Adicionar Colaborador"):
+            colaboradores.append(new_col.upper()); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
