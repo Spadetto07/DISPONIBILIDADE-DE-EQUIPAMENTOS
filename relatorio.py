@@ -5,17 +5,19 @@ from datetime import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Gestão de Obra Pro", layout="wide")
-# --- CONFIGURAÇÃO DE APP PARA CELULAR ---
+# --- FORÇAR ÍCONE E MODO APP NO TELEMÓVEL ---
 st.markdown(
-    f"""
-    <link rel="manifest" href="https://raw.githubusercontent.com/Spadetto07/DISPONIBILIDADE-DE-EQUIPAMENTOS/main/static/manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="Obra CASP">
+    """
+    <head>
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/4342/4342728.png">
+        <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/4342/4342728.png">
+        <title>Obra CASP</title>
+    </head>
     """,
     unsafe_allow_html=True
 )
-
 # --- 1. BANCO DE DADOS ---
 ARQUIVO_FROTA = 'frota.json'
 ARQUIVO_COLAB = 'colaboradores.json'
@@ -205,4 +207,5 @@ elif aba == "Gestão de Pessoal":
             colaboradores.remove(colab_remover)
             salvar_dados(ARQUIVO_COLAB, colaboradores)
             st.rerun()
+
 
