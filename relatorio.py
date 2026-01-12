@@ -5,15 +5,14 @@ from datetime import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Gestão de Obra Pro", layout="wide")
-# --- FORÇAR ÍCONE E MODO APP NO TELEMÓVEL ---
 st.markdown(
     """
     <head>
+        <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <link rel="icon" sizes="192x192" href="https://cdn-icons-png.flaticon.com/512/4342/4342728.png">
         <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/4342/4342728.png">
-        <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/4342/4342728.png">
-        <title>Obra CASP</title>
     </head>
     """,
     unsafe_allow_html=True
@@ -207,5 +206,6 @@ elif aba == "Gestão de Pessoal":
             colaboradores.remove(colab_remover)
             salvar_dados(ARQUIVO_COLAB, colaboradores)
             st.rerun()
+
 
 
