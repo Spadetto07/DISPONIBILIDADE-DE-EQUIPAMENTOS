@@ -10,35 +10,9 @@ st.set_page_config(page_title="Relatório de Turno", layout="wide")
 ARQUIVO_DADOS = 'frota.json'
 
 FROTA_PADRAO = {
-    "CARREGADEIRA": [
-        "CSP-078 - CAT 938G II", "CSP-090 - CAT 938K", "CSP-091 - CAT 938K",
-        "CSP-093 - CAT 924K", "CSP-094 - CAT 938K", "CSP-096 - CAT 938K",
-        "CSP-097 - CAT 938K", "CSP-098 - CAT 924K", "CSP-100 - CAT 950L",
-        "CSP-104 - CAT 938K", "CSP-106 - CAT 924K", "CSP-107 - CAT 924K"
-    ],
-    "ESCAVADEIRA": [
-        "ESE-019 - CAT 320 C", "ESE-023 - CAT 320 C", "ESE-031 - CAT 312 C",
-        "ESE-036 - HYUNDAI R260LC", "ESE-039 - HYUNDAI R220LC-9S", "ESE-047 - CAT 320LBR",
-        "ESE-048 - CAT 320GX", "ESE-049 - CAT 320LBR", "ESE-050 - CAT 320LBR",
-        "ESE-053 - CAT 320GC", "ESE-055 - CAT 320GC", "LOC-3456 - HYUNDAI R220LC-9S",
-        "LOC-7726 - HYUNDAI R220LC-9S"
-    ],
-    "CAMINHÃO": [
-        "CAM-185 - FORD 2626", "CAM-250 - MB L-1620/51", "CAM-267 - MB 1718/48",
-        "CAM-279 - VW 24.260", "CAM-306 - VW 26.260"
-    ],
-    "MOTONIVELADORA": ["MON-021 - CAT 12H II", "MON-022 - CAT 12H II"],
-    "RETRO ESCAVADEIRA": [
-        "RTE-029 - CAT 416E", "RTE-030 - CAT 416E", "RTE-034 - CAT 416F", "RTE-035 - CAT 416F"
-    ],
-    "TRATOR DE ESTEIRA": [
-        "TSE-019 - CAT D6D", "TSE-036 - CAT D6M", "TSE-037 - CAT D6M",
-        "TSE-046 - CAT D5", "TSE-052 - CAT D4"
-    ],
-    "MINI CARREGADEIRA / ESCAVADEIRA": ["MCP-007 - CAT 226B3", "MEE-007 - CAT 305.5"],
-    "PLANTAS": [
-        "ALV-001 - BRITADOR SXBM 6240", "CMB-002 - BRITADOR CÔNICO SYMONS",
-        "CMP-001 - PENEIRA AZUL", "USC-001 - USINA DE REVSOL CINZA"
+    "GERAL": [
+        "CSP-078 - CAT 938G II", "ESE-019 - CAT 320 C", "CAM-185 - FORD 2626",
+        "MON-021 - CAT 12H II", "RTE-029 - CAT 416E", "TSE-019 - CAT D6D"
     ]
 }
 
@@ -53,76 +27,101 @@ def salvar_frota(dados):
         json.dump(dados, f, indent=4, ensure_ascii=False)
 
 frota = carregar_frota()
+# Transforma a frota numa lista única para facilitar a seleção por turno
+lista_completa = []
+for cat in frota:
+    lista_completa.extend(frota[cat])
+lista_completa = sorted(list(set(lista_completa)))
 
 # --- 2. GESTÃO NA BARRA LATERAL ---
 st.sidebar.header("⚙️ Configurações da Frota")
-
-# Adicionar
-with st.sidebar.expander("➕ Adicionar"):
-    cat_add = st.selectbox("Categoria", list(frota.keys()), key="add_cat")
-    novo_nome = st.text_input("Novo Equipamento")
-    if st.button("Salvar Novo"):
-        if novo_nome:
-            frota[cat_add].append(novo_nome)
+with st.sidebar.expander("➕ Adicionar / ✏️ Editar / ❌ Excluir"):
+    modo = st.radio("Ação", ["Adicionar", "Editar", "Excluir"])
+    
+    if modo == "Adicionar":
+        novo = st.text_input("Novo Equipamento")
+        if st.button("Salvar Novo"):
+            if "GERAL" not in frota: frota["GERAL"] = []
+            frota["GERAL"].append(novo)
+            salvar_frota(frota)
+            st.rerun()
+            
+    elif modo == "Editar":
+        item_ed = st.selectbox("Selecionar", lista_completa)
+        novo_ed = st.text_input("Corrigir para", value=item_ed)
+        if st.button("Atualizar"):
+            for c in frota:
+                if item_ed in frota[c]:
+                    idx = frota[c].index(item_ed)
+                    frota[c][idx] = novo_ed
             salvar_frota(frota)
             st.rerun()
 
-# Editar (NOVIDADE)
-with st.sidebar.expander("✏️ Editar"):
-    cat_edit = st.selectbox("Categoria", list(frota.keys()), key="edit_cat")
-    item_para_editar = st.selectbox("Selecionar Máquina", frota[cat_edit], key="item_edit")
-    novo_nome_editado = st.text_input("Novo Nome/Texto", value=item_para_editar)
-    if st.button("Salvar Alteração"):
-        # Localiza o índice do item antigo e substitui pelo novo
-        index = frota[cat_edit].index(item_para_editar)
-        frota[cat_edit][index] = novo_nome_editado
-        salvar_frota(frota)
-        st.rerun()
+    elif modo == "Excluir":
+        item_ex = st.selectbox("Remover", lista_completa)
+        if st.button("Confirmar Exclusão"):
+            for c in frota:
+                if item_ex in frota[c]: frota[c].remove(item_ex)
+            salvar_frota(frota)
+            st.rerun()
 
-# Excluir
-with st.sidebar.expander("❌ Excluir"):
-    cat_rem = st.selectbox("Categoria", list(frota.keys()), key="rem_cat")
-    item_rem = st.selectbox("Máquina para Apagar", frota[cat_rem], key="item_rem")
-    if st.button("Confirmar Exclusão"):
-        frota[cat_rem].remove(item_rem)
-        salvar_frota(frota)
-        st.rerun()
+# --- 3. INTERFACE DE CABEÇALHO ---
+st.title("📝 Relatório de Escala e Disponibilidade")
 
-# --- 3. INTERFACE PRINCIPAL ---
-st.title("🚜 Controle de Disponibilidade")
+col1, col2, col3 = st.columns(3)
+with col1:
+    saudacao = st.selectbox("Saudação", ["Bom dia!!", "Boa tarde!!", "Boa noite!!"])
+    letra = st.selectbox("Letra", ["A", "B", "C", "D"])
+with col2:
+    horario = st.selectbox("Turno", ["06:00 às 18:00", "18:00 às 06:00"])
+with col3:
+    data_manual = st.date_input("Data", datetime.now())
 
-relatorio_final_dict = {}
+st.divider()
 
-for categoria, lista in frota.items():
-    with st.expander(f"📂 {categoria}", expanded=True):
-        itens_selecionados = []
-        for equip in lista:
-            exibicao_site = equip.replace("-", " ", 1)
-            check = st.checkbox(f"{exibicao_site}", key=f"check_{equip}")
-            
-            if check:
-                obs = st.text_input(f"Defeito para {exibicao_site}", key=f"obs_{equip}")
-                equip_formatado = equip.replace("-", " ", 1)
-                
-                if obs:
-                    itens_selecionados.append(f"❌ {equip_formatado} - {obs}")
-                else:
-                    itens_selecionados.append(f"✅ {equip_formatado}")
-        
-        if itens_selecionados:
-            relatorio_final_dict[categoria] = itens_selecionados
+# --- 4. DISTRIBUIÇÃO DOS EQUIPAMENTOS POR JORNADA ---
+def montar_bloco(titulo_bloco):
+    st.subheader(titulo_bloco)
+    selecionados = st.multiselect(f"Selecione os equipamentos para {titulo_bloco}", lista_completa, key=f"sel_{titulo_bloco}")
+    
+    resultados = []
+    for item in selecionados:
+        tag_limpa = item.replace("-", " ", 1)
+        # Checkbox lateral para saber se está quebrado
+        col_check, col_obs = st.columns([1, 3])
+        with col_check:
+            quebrado = st.checkbox(f"❌ {tag_limpa}", key=f"q_{titulo_bloco}_{item}")
+        with col_obs:
+            if quebrado:
+                defeito = st.text_input(f"Defeito", key=f"d_{titulo_bloco}_{item}")
+                resultados.append(f"❌ {tag_limpa} - {defeito if defeito else 'Manutenção'}")
+            else:
+                resultados.append(f"✅ {tag_limpa}")
+    return resultados
 
-# --- 4. GERADOR DE RELATÓRIO ---
-if st.button("GERAR RELATÓRIO FINAL"):
-    if not relatorio_final_dict:
-        st.error("Selecione pelo menos um equipamento!")
-    else:
-        agora = datetime.now().strftime("%d/%m/%Y %H:%M")
-        texto = f"DISPONIBILIDADE DE EQUIPAMENTOS - {agora}\n\n"
-        
-        for cat, linhas in relatorio_final_dict.items():
-            texto += f"{cat}\n"
-            texto += "\n".join(linhas) + "\n\n"
-        
-        st.success("Relatório pronto!")
-        st.code(texto, language="text")
+bloco_24h = montar_bloco("(24 horas)")
+st.divider()
+bloco_12h = montar_bloco("(12 horas)")
+st.divider()
+bloco_adm = montar_bloco("(ADM)")
+
+# --- 5. GERAÇÃO DO RELATÓRIO FINAL ---
+if st.button("🚀 GERAR RELATÓRIO COMPLETO"):
+    dias_semana = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
+    dia_nome = dias_semana[data_manual.weekday()]
+    data_str = data_manual.strftime("%d de %B de %Y") # Mês em inglês por padrão no Python, podemos ajustar se quiseres
+    
+    texto = f"{saudacao}\nCom segurança.\n\n"
+    texto += f"{dia_nome}, dia {data_manual.strftime('%d de janeiro de %Y')}\n\n" # Ajustado para Janeiro conforme o print
+    texto += "Segue a relação de equipamentos utilizados:\n\n"
+    texto += f"Letra: {letra}\nTurno: {horario}\n\n"
+    
+    if bloco_24h:
+        texto += "(24 horas)\n" + "\n".join(bloco_24h) + "\n\n"
+    if bloco_12h:
+        texto += "(12 horas)\n" + "\n".join(bloco_12h) + "\n\n"
+    if bloco_adm:
+        texto += "(ADM)\n" + "\n".join(bloco_adm) + "\n\n"
+    
+    st.success("Relatório gerado!")
+    st.code(texto, language="text")
