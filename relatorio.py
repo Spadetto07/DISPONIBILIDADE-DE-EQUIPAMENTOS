@@ -21,9 +21,16 @@ FROTA_PADRAO = {
     "PLANTAS": ["ALV-001", "CMB-002", "CMP-001", "USC-001"]
 }
 
-# Lista inicial com os nomes que forneceu (Primeiro e Segundo nome)
 COLAB_PADRAO = ["Adilson Santos", "Paulo Ponath", "Filipe Spadetto"]
 
 def carregar_dados(arquivo, padrao):
-    if not os.path.exists(arquivo): return padrao
-    with open(
+    if not os.path.exists(arquivo): 
+        return padrao
+    try:
+        with open(arquivo, 'r', encoding='utf-8') as f: 
+            return json.load(f)
+    except:
+        return padrao
+
+def salvar_dados(arquivo, dados):
+    with open(arquivo, 'w', encoding='utf-8')
