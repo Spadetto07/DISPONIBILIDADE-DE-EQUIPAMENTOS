@@ -4,25 +4,22 @@ import os
 from datetime import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="Gestão de Obra Pro", layout="wide")
+st.set_page_config(page_title="Gestão de Obra", layout="wide")
 
-# --- 1. BANCO DE DADOS ---
-ARQUIVO_FROTA = 'frota.json'
-ARQUIVO_COLAB = 'colaboradores.json'
-
-# Função para traduzir o mês para Português
+# --- TRADUÇÃO DE DATA ---
 def data_em_portugues():
-    meses = {
+    meses_trad = {
         "January": "Janeiro", "February": "Fevereiro", "March": "Março",
         "April": "Abril", "May": "Maio", "June": "Junho",
         "July": "Julho", "August": "Agosto", "September": "Setembro",
         "October": "Outubro", "November": "Novembro", "December": "Dezembro"
     }
     agora = datetime.now()
-    dia = agora.strftime("%d")
-    mes_en = agora.strftime("%B")
-    ano = agora.strftime("%Y")
-    return f"{dia} de {meses[mes_en]} de {ano}"
+    return f"{agora.strftime('%d')} de {meses_trad.get(agora.strftime('%B'))} de {agora.strftime('%Y')}"
+
+# --- BANCO DE DADOS ---
+ARQUIVO_FROTA = 'frota.json'
+ARQUIVO_COLAB = 'colaboradores.json'
 
 FROTA_PADRAO = {
     "CARREGADEIRA": ["CSP-078", "CSP-090", "CSP-091", "CSP-093", "CSP-094", "CSP-096", "CSP-097", "CSP-098", "CSP-100", "CSP-104", "CSP-106", "CSP-107"],
@@ -35,132 +32,118 @@ FROTA_PADRAO = {
     "PLANTAS": ["ALV-001", "CMB-002", "CMP-001", "USC-001"]
 }
 
-# COLOQUE TODOS OS NOMES QUE DESEJAR NESTA LISTA ABAIXO
-COLAB_PADRAO = [
-    "Adilson Santos", "Paulo Ponath", "Filipe Spadetto", 
-    "Afonso Pena", "Getulio Vargas", "Juscelino Kubitschek"
+COLAB_LISTA_NOVA = [
+    "ADILSON JESUS", "HANDREY FRITZ", "JONATAS FAGUNDES", "PAULO SILAS", "ALISSON NASCIMENTO",
+    "ANDRE LUIZ", "JULIO MESSIAS", "JOAO VICTOR", "JAMES RIBEIRO", "FELIPE SOUZA",
+    "JOSE CICERO", "HENRIQUE JESUS", "HIGOR PEREIRA", "JOAO MARCOS", "FELIPE ROCHA",
+    "PAULO HENRIQUE", "RENATO MARQUES", "FILIPE NASCIMENTO", "IGOR SÁ", "RIAN SANTOS",
+    "JUCELI SOLEDADE", "ALEXANDRO BATISTA", "RAFAEL BARCELLOS", "VINICIUS SOUZA",
+    "LUCAS NASCIMENTO", "RAFAEL TREVIZANELI", "FHELIPE SILVA", "LEONILSON SILVA"
 ]
 
 def carregar_dados(arquivo, padrao):
-    if not os.path.exists(arquivo): 
-        return padrao
-    try:
-        with open(arquivo, 'r', encoding='utf-8') as f: 
-            return json.load(f)
-    except:
-        return padrao
+    if not os.path.exists(arquivo): return padrao
+    with open(arquivo, 'r', encoding='utf-8') as f:
+        try: return json.load(f)
+        except: return padrao
 
 def salvar_dados(arquivo, dados):
-    with open(arquivo, 'w', encoding='utf-8') as f: 
+    with open(arquivo, 'w', encoding='utf-8') as f:
         json.dump(dados, f, indent=4, ensure_ascii=False)
 
-def formatar_prefixo(nome):
-    return nome.split(" ")[0].replace("-", " ")
+def limpar_nome(n):
+    partes = n.split()
+    return " ".join(partes[:2]) if len(partes) >= 2 else n
 
-def limpar_nome_colab(nome_completo):
-    partes = nome_completo.split()
-    return " ".join(partes[:2]) if len(partes) >= 2 else nome_completo
-
-# Carregar dados
+# Iniciar Dados
 frota = carregar_dados(ARQUIVO_FROTA, FROTA_PADRAO)
-colaboradores = sorted(carregar_dados(ARQUIVO_COLAB, COLAB_PADRAO))
+colaboradores = carregar_dados(ARQUIVO_COLAB, sorted(COLAB_LISTA_NOVA))
 lista_completa_equip = sorted([item for sublist in frota.values() for item in sublist])
 
-# --- 2. NAVEGAÇÃO LATERAL ---
+# --- NAVEGAÇÃO ---
 st.sidebar.title("🏗️ Menu Principal")
-aba = st.sidebar.radio("Escolha o Relatório:", ["Disponibilidade", "Equipamentos Utilizados", "Gestão de Frota", "Gestão de Pessoal"])
+aba = st.sidebar.radio("Ir para:", ["Disponibilidade", "Equipamentos Utilizados", "Gestão de Frota", "Gestão de Pessoal"])
 
-# --- ABA: DISPONIBILIDADE ---
+# --- 1. DISPONIBILIDADE ---
 if aba == "Disponibilidade":
-    st.title("🚜 Relatório de Disponibilidade")
-    relatorio_dict = {}
-    for categoria, lista in frota.items():
-        with st.expander(f"📂 {categoria}", expanded=False):
+    st.title("🚜 Disponibilidade")
+    rel_d = {}
+    for cat, lista in frota.items():
+        with st.expander(f"📂 {cat}"):
             itens = []
-            for equip in lista:
-                nome_limpo = formatar_prefixo(equip)
-                if st.checkbox(f"{nome_limpo}", key=f"disp_{equip}"):
-                    obs = st.text_input(f"Defeito para {nome_limpo}", key=f"obs_{equip}")
-                    itens.append(f"❌ {nome_limpo} - {obs}" if obs else f"✅ {nome_limpo}")
-            if itens: relatorio_dict[categoria] = itens
+            for e in lista:
+                tag = e.replace("-", " ", 1)
+                if st.checkbox(f"{tag}", key=f"d_{e}"):
+                    obs = st.text_input(f"Defeito p/ {tag}", key=f"o_{e}")
+                    itens.append(f"❌ {tag} - {obs}" if obs else f"✅ {tag}")
+            if itens: rel_d[cat] = itens
+    if st.button("GERAR RELATÓRIO"):
+        res = f"DISPONIBILIDADE DE EQUIPAMENTOS - {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
+        for c, l in rel_d.items(): res += f"{c}\n" + "\n".join(l) + "\n\n"
+        st.code(res, language="text")
 
-    if st.button("GERAR RELATÓRIO DISPONIBILIDADE"):
-        agora = datetime.now().strftime("%d/%m/%Y %H:%M")
-        texto = f"DISPONIBILIDADE DE EQUIPAMENTOS - {agora}\n\n"
-        for cat, linhas in relatorio_dict.items():
-            texto += f"{cat}\n" + "\n".join(linhas) + "\n\n"
-        st.code(texto, language="text")
-
-# --- ABA: UTILIZADOS ---
+# --- 2. UTILIZADOS ---
 elif aba == "Equipamentos Utilizados":
-    st.title("📋 Relação de Equipamentos Utilizados")
+    st.title("📋 Equipamentos Utilizados")
+    c1, c2, c3 = st.columns(3)
+    with c1: saud = st.selectbox("Saudação", ["Bom dia!!", "Boa tarde!!", "Boa noite!!"])
+    with c2: let = st.selectbox("Letra", ["A", "B", "C", "D"])
+    with c3: tur = st.selectbox("Turno", ["06:00 às 18:00", "18:00 às 06:00"])
     
-    col1, col2, col3 = st.columns(3)
-    with col1: saudacao = st.selectbox("Cumprimento", ["Bom dia!!", "Boa tarde!!", "Boa noite!!"])
-    with col2: letra = st.selectbox("Letra", ["A", "B", "C", "D"])
-    with col3: turno = st.selectbox("Turno", ["06:00 às 18:00", "18:00 às 06:00"])
-
-    col_p1, col_p2 = st.columns(2)
-    with col_p1: supervisor = st.selectbox("Supervisor", colaboradores)
-    with col_p2: encarregado = st.selectbox("Encarregado", colaboradores)
+    cp1, cp2 = st.columns(2)
+    with cp1: superv = st.selectbox("Supervisor", colaboradores)
+    with cp2: encar = st.selectbox("Encarregado", colaboradores)
 
     st.markdown("---")
-    
-    disponiveis = lista_completa_equip.copy()
-    u24 = st.multiselect("24 horas", disponiveis)
-    disponiveis = [e for e in disponiveis if e not in u24]
-    
-    u12 = st.multiselect("12 horas", disponiveis)
-    disponiveis = [e for e in disponiveis if e not in u12]
-    
-    u_adm = st.multiselect("ADM", disponiveis)
-    disponiveis = [e for e in disponiveis if e not in u_adm]
-    
-    u_ev = st.multiselect("EVENTUAL", disponiveis)
+    disp = lista_completa_equip.copy()
+    u24 = st.multiselect("24h", disp); disp = [e for e in disp if e not in u24]
+    u12 = st.multiselect("12h", disp); disp = [e for e in disp if e not in u12]
+    uadm = st.multiselect("ADM", disp); disp = [e for e in disp if e not in uadm]
+    uev = st.multiselect("EVENTUAL", disp)
 
-    if st.button("GERAR RELAÇÃO DE UTILIZADOS"):
-        data_extenso_pt = data_em_portugues()
-        s_nome = limpar_nome_colab(supervisor)
-        e_nome = limpar_nome_colab(encarregado)
-        
-        texto_util = f"{saudacao}\nCom segurança.\n\nHoje, {data_extenso_pt}\nSegue a relação de equipamentos utilizados:\n\n"
-        texto_util += f"Supervisor: {s_nome}\nEncarregado: {e_nome}\nLetra: {letra}\nTurno: {turno}\n\n"
-        
-        secoes = [("(24 horas)", u24), ("(12 horas)", u12), ("(ADM)", u_adm), ("(EVENTUAL)", u_ev)]
-        for titulo, lista in secoes:
-            if lista:
-                texto_util += f"{titulo}\n"
-                for e in lista: 
-                    texto_util += f"✅ {formatar_prefixo(e)} CASP\n"
-                texto_util += "\n"
-        st.code(texto_util, language="text")
+    if st.button("GERAR"):
+        txt = f"{saud}\nCom segurança.\n\nHoje, {data_em_portugues()}\nSegue relação:\n\n"
+        txt += f"Supervisor: {limpar_nome(superv)}\nEncarregado: {limpar_nome(encar)}\nLetra: {let}\nTurno: {tur}\n\n"
+        for t, l in [("(24 horas)", u24), ("(12 horas)", u12), ("(ADM)", uadm), ("(EVENTUAL)", uev)]:
+            if l:
+                txt += f"{t}\n"
+                for e in l: txt += f"✅ {e.replace('-', ' ', 1)} CASP\n"
+                txt += "\n"
+        st.code(txt, language="text")
 
-# --- GESTÃO FROTA ---
+# --- 3. GESTÃO FROTA ---
 elif aba == "Gestão de Frota":
-    st.title("⚙️ Gestão de Equipamentos")
+    st.title("⚙️ Gerir Equipamentos")
     with st.expander("➕ Adicionar"):
-        c_add = st.selectbox("Categoria", list(frota.keys()))
-        n_add = st.text_input("Novo Prefixo")
-        if st.button("Salvar Novo"):
-            frota[c_add].append(n_add); salvar_dados(ARQUIVO_FROTA, frota); st.rerun()
-    with st.expander("✏️ Editar"):
-        c_ed = st.selectbox("Categoria ", list(frota.keys())); item_ed = st.selectbox("Selecionar", frota[c_ed])
-        n_ed = st.text_input("Corrigir", value=item_ed)
-        if st.button("Salvar Edição"):
-            idx = frota[c_ed].index(item_ed); frota[c_ed][idx] = n_ed; salvar_dados(ARQUIVO_FROTA, frota); st.rerun()
-    with st.expander("❌ Excluir"):
-        c_rm = st.selectbox("Categoria  ", list(frota.keys())); item_rm = st.selectbox("Apagar", frota[c_rm])
-        if st.button("Confirmar Exclusão"):
-            frota[c_rm].remove(item_rm); salvar_dados(ARQUIVO_FROTA, frota); st.rerun()
+        ca = st.selectbox("Categoria", list(frota.keys()))
+        na = st.text_input("Prefixo (Ex: ESE-048)")
+        if st.button("Salvar"):
+            frota[ca].append(na); salvar_dados(ARQUIVO_FROTA, frota); st.rerun()
+    with st.expander("✏️ Editar/Excluir"):
+        ce = st.selectbox("Categoria ", list(frota.keys()))
+        ie = st.selectbox("Equipamento", frota[ce])
+        ne = st.text_input("Novo Nome", value=ie)
+        c_ed1, c_ed2 = st.columns(2)
+        with c_ed1:
+            if st.button("Atualizar"):
+                idx = frota[ce].index(ie); frota[ce][idx] = ne; salvar_dados(ARQUIVO_FROTA, frota); st.rerun()
+        with c_ed2:
+            if st.button("Excluir"):
+                frota[ce].remove(ie); salvar_dados(ARQUIVO_FROTA, frota); st.rerun()
 
-# --- GESTÃO PESSOAL ---
+# --- 4. GESTÃO PESSOAL ---
 elif aba == "Gestão de Pessoal":
-    st.title("👤 Gestão de Colaboradores")
-    novo_colab = st.text_input("Nome do Colaborador")
+    st.title("👤 Gerir Colaboradores")
+    nc = st.text_input("Nome Completo")
     if st.button("Adicionar"):
-        if novo_colab:
-            colaboradores.append(novo_colab); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
+        if nc: colaboradores.append(nc); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
     st.markdown("---")
-    col_rem = st.selectbox("Remover Colaborador", colaboradores)
-    if st.button("Remover"):
-        colaboradores.remove(col_rem); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
+    cr = st.selectbox("Editar/Remover Colaborador", colaboradores)
+    n_edit_c = st.text_input("Editar Nome Selecionado", value=cr)
+    ce1, ce2 = st.columns(2)
+    with ce1:
+        if st.button("Salvar Alteração"):
+            idx_c = colaboradores.index(cr); colaboradores[idx_c] = n_edit_c; salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
+    with ce2:
+        if st.button("Remover Permanentemente"):
+            colaboradores.remove(cr); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
