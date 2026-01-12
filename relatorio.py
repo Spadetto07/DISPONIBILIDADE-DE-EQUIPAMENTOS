@@ -7,14 +7,14 @@ from datetime import datetime
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Gestão de Obra Pro", layout="wide")
 
-# --- CONEXÃO COM GITHUB (BANCO DE DADOS REAL) ---
+# --- CONEXÃO COM GITHUB (SISTEMA DE ARQUIVOS REAL) ---
 try:
     TOKEN = st.secrets["GITHUB_TOKEN"]
     REPO_NAME = st.secrets["GITHUB_REPO"]
     g = Github(TOKEN)
     repo = g.get_repo(REPO_NAME)
 except Exception as e:
-    st.error("Erro nas permissões (Secrets). Verifique o Token no Passo 2.")
+    st.error("Erro nas permissões. Verifique se o GITHUB_TOKEN foi colado corretamente nos 'Secrets' do Streamlit.")
     st.stop()
 
 def carregar_do_github(caminho, padrao):
@@ -40,7 +40,7 @@ def data_em_portugues():
 
 # --- CARREGAR DADOS ---
 frota = carregar_do_github("frota.json", {})
-colaboradores = carregar_do_github("colaboradores.json", ["ADILSON JESUS", "HANDREY FRITZ", "JONATAS FAGUNDES", "PAULO SILAS"])
+colaboradores = carregar_do_github("colaboradores.json", ["ADILSON JESUS", "HANDREY FRITZ", "JONATAS FAGUNDES"])
 
 # --- MENU LATERAL ---
 aba = st.sidebar.radio("Navegação", ["Disponibilidade", "Equipamentos Utilizados", "Gestão de Frota", "Gestão de Pessoal"])
@@ -100,15 +100,16 @@ elif aba == "Equipamentos Utilizados":
 elif aba == "Gestão de Frota":
     st.title("⚙️ Gerir Equipamentos")
     with st.expander("➕ Criar/Adicionar"):
-        nova_cat = st.text_input("Nova Categoria (ou selecione abaixo)")
-        cat_sel = st.selectbox("Categorias Existentes", list(frota.keys()) if frota else ["Nenhuma"])
+        nova_cat = st.text_input("Nova Categoria (Ex: ESCAVADEIRA)")
+        cat_existente = st.selectbox("Ou escolha Categoria Existente", list(frota.keys()) if frota else ["Nenhuma"])
         novo_e = st.text_input("Tag (Ex: ESE-048)")
         if st.button("Salvar Equipamento"):
-            target = nova_cat if nova_cat else cat_sel
+            target = nova_cat.upper() if nova_cat else cat_existente
             if target not in frota: frota[target] = []
-            if novo_e: frota[target].append(novo_e)
-            salvar_no_github("frota.json", frota)
-            st.rerun()
+            if novo_e: 
+                frota[target].append(novo_e.upper())
+                salvar_no_github("frota.json", frota)
+                st.rerun()
     with st.expander("✏️ Editar/Excluir"):
         if frota:
             ce = st.selectbox("Categoria ", list(frota.keys()))
@@ -117,12 +118,11 @@ elif aba == "Gestão de Frota":
             c_ed1, c_ed2 = st.columns(2)
             with c_ed1:
                 if st.button("Atualizar"):
-                    frota[ce].remove(ie); frota[ce].append(ne)
+                    frota[ce].remove(ie); frota[ce].append(ne.upper())
                     salvar_no_github("frota.json", frota); st.rerun()
             with c_ed2:
                 if st.button("Excluir"):
-                    frota[ce].remove(ie)
-                    salvar_no_github("frota.json", frota); st.rerun()
+                    frota[ce].remove(ie); salvar_no_github("frota.json", frota); st.rerun()
 
 # --- ABA: GESTÃO DE PESSOAL ---
 elif aba == "Gestão de Pessoal":
@@ -144,5 +144,4 @@ elif aba == "Gestão de Pessoal":
                 salvar_no_github("colaboradores.json", sorted(colaboradores)); st.rerun()
         with col2:
             if st.button("Excluir Permanente"):
-                colaboradores.remove(c_sel)
-                salvar_no_github("colaboradores.json", colaboradores); st.rerun()
+                colaboradores.remove(c_sel); salvar_no_github("colaboradores.json", colaboradores); st.rerun()
