@@ -54,14 +54,16 @@ def data_em_portugues():
     agora = datetime.now()
     return f"{dias_semana[agora.strftime('%A')]}, dia {agora.strftime('%d')} de {meses[agora.strftime('%B')]} de {agora.strftime('%Y')}"
 
+# Carregar dados iniciais
 frota = carregar_dados(ARQUIVO_FROTA, FROTA_PADRAO)
 colaboradores = sorted(carregar_dados(ARQUIVO_COLAB, COLAB_PADRAO))
 lista_total = sorted([item for sublist in frota.values() for item in sublist])
 
 # --- NAVEGAÇÃO ---
-aba = st.sidebar.radio("Escolha o Relatório:", ["Equipamentos Utilizados", "Disponibilidade", "Gestão"])
+st.sidebar.title("🏗️ Menu Principal")
+aba = st.sidebar.radio("Escolha:", ["Equipamentos Utilizados", "Disponibilidade", "Gestão de Frota", "Gestão de Pessoal"])
 
-# --- 1. EQUIPAMENTOS UTILIZADOS (MODELO DETALHADO) ---
+# --- 1. EQUIPAMENTOS UTILIZADOS ---
 if aba == "Equipamentos Utilizados":
     st.title("📋 Relação de Equipamentos Utilizados")
     
@@ -116,8 +118,8 @@ if aba == "Equipamentos Utilizados":
         if enc_pas: txt += f"PAS\nEncarregado: {limpar_nome_colab(enc_pas)}\n\n"
         if exec1_nome or exec2_nome:
             txt += "EXECUTADORES - ADM\n"
-            if exec1_nome: txt += f"{limpar_nome_colab(exec1_nome)}: {exec1_task}\n"
-            if exec2_nome: txt += f"{limpar_nome_colab(exec2_nome)}: {exec2_task}\n"
+            if exec1_nome: txt += f"{limpar_nome_colab(exec1_nome).split()[0]}: {exec1_task}\n"
+            if exec2_nome: txt += f"{limpar_nome_colab(exec2_nome).split()[0]}: {exec2_task}\n"
             txt += "\n"
         if ctrl_bacia: txt += f"CONTROLADOR DA BACIA: {limpar_nome_colab(ctrl_bacia)}\n\n"
             
@@ -128,7 +130,7 @@ if aba == "Equipamentos Utilizados":
                 txt += "\n"
         st.code(txt, language="text")
 
-# --- 2. DISPONIBILIDADE (TOTALMENTE RECUPERADA) ---
+# --- 2. DISPONIBILIDADE ---
 elif aba == "Disponibilidade":
     st.title("🚜 Relatório de Disponibilidade")
     rel_d = {}
@@ -141,21 +143,55 @@ elif aba == "Disponibilidade":
                     obs = st.text_input(f"Defeito para {tag}", key=f"obs_{e}")
                     itens.append(f"❌ {tag} - {obs}" if obs else f"✅ {tag}")
             if itens: rel_d[cat] = itens
-    if st.button("GERAR RELATÓRIO DISPONIBILIDADE"):
+    if st.button("GERAR DISPONIBILIDADE"):
         texto = f"DISPONIBILIDADE DE EQUIPAMENTOS - {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
         for c, l in rel_d.items(): texto += f"{c}\n" + "\n".join(l) + "\n\n"
         st.code(texto, language="text")
 
-# --- 3. GESTÃO ---
-elif aba == "Gestão":
-    st.title("⚙️ Gestão de Dados")
-    tab1, tab2 = st.tabs(["Equipamentos", "Colaboradores"])
-    with tab1:
-        cat_add = st.selectbox("Categoria", list(frota.keys()))
-        new_eq = st.text_input("Novo Equipamento")
-        if st.button("Adicionar Equipamento"):
-            frota[cat_add].append(new_eq); salvar_dados(ARQUIVO_FROTA, frota); st.rerun()
-    with tab2:
-        new_col = st.text_input("Novo Colaborador")
-        if st.button("Adicionar Colaborador"):
-            colaboradores.append(new_col.upper()); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
+# --- 3. GESTÃO DE FROTA (ADICIONAR/EDITAR/EXCLUIR) ---
+elif aba == "Gestão de Frota":
+    st.title("⚙️ Gestão de Equipamentos")
+    
+    with st.expander("➕ Adicionar Novo Equipamento"):
+        c_add = st.selectbox("Categoria para adicionar", list(frota.keys()))
+        n_add = st.text_input("Novo Prefixo (Ex: ESE-048)")
+        if st.button("Salvar Novo"):
+            if n_add:
+                frota[c_add].append(n_add.upper())
+                salvar_dados(ARQUIVO_FROTA, frota)
+                st.rerun()
+
+    with st.expander("✏️ Editar Nome de Equipamento"):
+        c_ed = st.selectbox("Categoria ", list(frota.keys()))
+        item_ed = st.selectbox("Equipamento para editar", frota[c_ed])
+        n_ed = st.text_input("Novo Nome", value=item_ed)
+        if st.button("Salvar Alteração"):
+            idx = frota[c_ed].index(item_ed)
+            frota[c_ed][idx] = n_ed.upper()
+            salvar_dados(ARQUIVO_FROTA, frota)
+            st.rerun()
+
+    with st.expander("❌ Excluir Equipamento"):
+        c_rm = st.selectbox("Categoria  ", list(frota.keys()))
+        item_rm = st.selectbox("Equipamento para apagar", frota[c_rm])
+        if st.button("Confirmar Exclusão"):
+            frota[c_rm].remove(item_rm)
+            salvar_dados(ARQUIVO_FROTA, frota)
+            st.rerun()
+
+# --- 4. GESTÃO DE PESSOAL ---
+elif aba == "Gestão de Pessoal":
+    st.title("👤 Gestão de Colaboradores")
+    novo_colab = st.text_input("Nome do Colaborador")
+    if st.button("Adicionar Colaborador"):
+        if novo_colab:
+            colaboradores.append(novo_colab.upper())
+            salvar_dados(ARQUIVO_COLAB, colaboradores)
+            st.rerun()
+    st.markdown("---")
+    colab_remover = st.selectbox("Remover Colaborador", colaboradores)
+    if st.button("Remover Permanentemente"):
+        if colab_remover:
+            colaboradores.remove(colab_remover)
+            salvar_dados(ARQUIVO_COLAB, colaboradores)
+            st.rerun()
