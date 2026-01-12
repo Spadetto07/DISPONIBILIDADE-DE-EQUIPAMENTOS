@@ -21,7 +21,15 @@ FROTA_PADRAO = {
     "PLANTAS": ["ALV-001", "CMB-002", "CMP-001", "USC-001"]
 }
 
-COLAB_PADRAO = ["Adilson Santos", "Paulo Ponath", "Filipe Spadetto"]
+# Lista com os seus 28 colaboradores atualizados
+COLAB_PADRAO = [
+    "ADILSON JESUS", "HANDREY FRITZ", "JONATAS FAGUNDES", "PAULO SILAS", "ALISSON NASCIMENTO",
+    "ANDRE LUIZ", "JULIO MESSIAS", "JOAO VICTOR", "JAMES RIBEIRO", "FELIPE SOUZA",
+    "JOSE CICERO", "HENRIQUE JESUS", "HIGOR PEREIRA", "JOAO MARCOS", "FELIPE ROCHA",
+    "PAULO HENRIQUE", "RENATO MARQUES", "FILIPE NASCIMENTO", "IGOR SÁ", "RIAN SANTOS",
+    "JUCELI SOLEDADE", "ALEXANDRO BATISTA", "RAFAEL BARCELLOS", "VINICIUS SOUZA",
+    "LUCAS NASCIMENTO", "RAFAEL TREVIZANELI", "FHELIPE SILVA", "LEONILSON SILVA"
+]
 
 def carregar_dados(arquivo, padrao):
     if not os.path.exists(arquivo): 
@@ -42,6 +50,17 @@ def formatar_prefixo(nome):
 def limpar_nome_colab(nome_completo):
     partes = nome_completo.split()
     return " ".join(partes[:2]) if len(partes) >= 2 else nome_completo
+
+def data_em_portugues():
+    meses = {
+        "January": "Janeiro", "February": "Fevereiro", "March": "Março",
+        "April": "Abril", "May": "Maio", "June": "Junho",
+        "July": "Julho", "August": "Agosto", "September": "Setembro",
+        "October": "Outubro", "November": "Novembro", "December": "Dezembro"
+    }
+    agora = datetime.now()
+    mes_pt = meses.get(agora.strftime("%B"), agora.strftime("%B"))
+    return agora.strftime(f"%d de {mes_pt} de %Y")
 
 # Carregar dados
 frota = carregar_dados(ARQUIVO_FROTA, FROTA_PADRAO)
@@ -106,7 +125,7 @@ elif aba == "Equipamentos Utilizados":
     u_ev = st.multiselect("EVENTUAL", disponiveis)
 
     if st.button("GERAR RELAÇÃO DE UTILIZADOS"):
-        data_extenso = datetime.now().strftime("%d de %B de %Y")
+        data_extenso = data_em_portugues()
         s_nome = limpar_nome_colab(supervisor)
         e_nome = limpar_nome_colab(encarregado)
         
@@ -155,7 +174,7 @@ elif aba == "Gestão de Pessoal":
     novo_colab = st.text_input("Nome do Colaborador")
     if st.button("Adicionar Colaborador"):
         if novo_colab:
-            colaboradores.append(novo_colab)
+            colaboradores.append(novo_colab.upper())
             salvar_dados(ARQUIVO_COLAB, colaboradores)
             st.rerun()
     st.markdown("---")
