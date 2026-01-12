@@ -1,11 +1,12 @@
 import streamlit as st
 import json
 import os
+from datetime import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Relatório de Turno", layout="wide")
 
-# --- 1. SISTEMA DE BANCO DE DADOS ---
+# --- 1. BANCO DE DADOS ---
 ARQUIVO_DADOS = 'frota.json'
 
 FROTA_PADRAO = {
@@ -31,4 +32,74 @@ FROTA_PADRAO = {
         "RTE-029 - CAT 416E", "RTE-030 - CAT 416E", "RTE-034 - CAT 416F", "RTE-035 - CAT 416F"
     ],
     "TRATOR DE ESTEIRA": [
-        "TSE-
+        "TSE-019 - CAT D6D", "TSE-036 - CAT D6M", "TSE-037 - CAT D6M",
+        "TSE-046 - CAT D5", "TSE-052 - CAT D4"
+    ],
+    "MINI CARREGADEIRA / ESCAVADEIRA": ["MCP-007 - CAT 226B3", "MEE-007 - CAT 305.5"],
+    "PLANTAS": [
+        "ALV-001 - BRITADOR SXBM 6240", "CMB-002 - BRITADOR CÔNICO SYMONS",
+        "CMP-001 - PENEIRA AZUL", "USC-001 - USINA DE REVSOL CINZA"
+    ]
+}
+
+def carregar_frota():
+    if not os.path.exists(ARQUIVO_DADOS):
+        return FROTA_PADRAO
+    with open(ARQUIVO_DADOS, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+def salvar_frota(dados):
+    with open(ARQUIVO_DADOS, 'w', encoding='utf-8') as f:
+        json.dump(dados, f, indent=4, ensure_ascii=False)
+
+frota = carregar_frota()
+
+# --- 2. GESTÃO NA BARRA LATERAL ---
+st.sidebar.header("⚙️ Configurações")
+with st.sidebar.expander("➕ Adicionar Máquina"):
+    cat_add = st.selectbox("Categoria", list(frota.keys()))
+    novo_nome = st.text_input("Nome/Tag")
+    if st.button("Salvar"):
+        if novo_nome:
+            frota[cat_add].append(novo_nome)
+            salvar_frota(frota)
+            st.rerun()
+
+# --- 3. INTERFACE PRINCIPAL ---
+st.title("🚜 Controle de Disponibilidade")
+st.info("Selecione os equipamentos. Campo vazio = ✅ | Com texto = ❌")
+
+relatorio_final = {}
+
+for categoria, lista in frota.items():
+    with st.expander(f"📂 {categoria}", expanded=True):
+        itens_selecionados = []
+        for equip in lista:
+            check = st.checkbox(f"{equip}", key=equip)
+            if check:
+                obs = st.text_input(f"Defeito para {equip}", key=f"obs_{equip}")
+                if obs:
+                    itens_selecionados.append(f"❌ {equip} - {obs}")
+                else:
+                    itens_selecionados.append(f"✅ {equip}")
+        if itens_selecionados:
+            relatorio_final[categoria] = itens_selecionados
+
+# --- 4. GERADOR DE RELATÓRIO ---
+if st.button("GERAR RELATÓRIO PARA COPIAR"):
+    if not relatorio_final:
+        st.error("Selecione pelo menos um equipamento!")
+    else:
+        agora = datetime.now().strftime("%d/%m/%Y %H:%M")
+        texto = f"📋 RELATÓRIO DE EQUIPAMENTOS - {agora}\n"
+        texto += "="*40 + "\n"
+        
+        for cat, linhas in relatorio_final.items():
+            texto += f"\n👉 {cat}\n"
+            texto += "\n".join(linhas) + "\n"
+            
+        texto += "\n" + "="*40 + "\nFim da passagem de turno."
+        
+        st.success("Relatório gerado! Use o botão 'Copy' abaixo.")
+        # O st.code cria automaticamente o botão de cópia no canto superior direito
+        st.code(texto, language="text")
