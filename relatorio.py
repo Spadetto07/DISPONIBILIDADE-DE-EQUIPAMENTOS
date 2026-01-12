@@ -1,72 +1,53 @@
 import streamlit as st
 import json
-import os
+import base64
+from github import Github
 from datetime import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="Gestão de Obra", layout="wide")
+st.set_page_config(page_title="Gestão de Obra Pro", layout="wide")
+
+# --- CONEXÃO COM GITHUB (BANCO DE DADOS REAL) ---
+try:
+    TOKEN = st.secrets["GITHUB_TOKEN"]
+    REPO_NAME = st.secrets["GITHUB_REPO"]
+    g = Github(TOKEN)
+    repo = g.get_repo(REPO_NAME)
+except Exception as e:
+    st.error("Erro nas permissões (Secrets). Verifique o Token no Passo 2.")
+    st.stop()
+
+def carregar_do_github(caminho, padrao):
+    try:
+        contents = repo.get_contents(caminho)
+        return json.loads(base64.b64decode(contents.content).decode('utf-8'))
+    except:
+        return padrao
+
+def salvar_no_github(caminho, dados):
+    conteudo_json = json.dumps(dados, indent=4, ensure_ascii=False)
+    try:
+        contents = repo.get_contents(caminho)
+        repo.update_file(contents.path, f"Update {caminho} via App", conteudo_json, contents.sha)
+    except:
+        repo.create_file(caminho, f"Create {caminho} via App", conteudo_json)
 
 # --- TRADUÇÃO DE DATA ---
 def data_em_portugues():
-    meses_trad = {
-        "January": "Janeiro", "February": "Fevereiro", "March": "Março",
-        "April": "Abril", "May": "Maio", "June": "Junho",
-        "July": "Julho", "August": "Agosto", "September": "Setembro",
-        "October": "Outubro", "November": "Novembro", "December": "Dezembro"
-    }
+    meses = {"January": "Janeiro", "February": "Fevereiro", "March": "Março", "April": "Abril", "May": "Maio", "June": "Junho", "July": "Julho", "August": "Agosto", "September": "Setembro", "October": "Outubro", "November": "Novembro", "December": "Dezembro"}
     agora = datetime.now()
-    return f"{agora.strftime('%d')} de {meses_trad.get(agora.strftime('%B'))} de {agora.strftime('%Y')}"
+    return f"{agora.strftime('%d')} de {meses.get(agora.strftime('%B'))} de {agora.strftime('%Y')}"
 
-# --- BANCO DE DADOS ---
-ARQUIVO_FROTA = 'frota.json'
-ARQUIVO_COLAB = 'colaboradores.json'
+# --- CARREGAR DADOS ---
+frota = carregar_do_github("frota.json", {})
+colaboradores = carregar_do_github("colaboradores.json", ["ADILSON JESUS", "HANDREY FRITZ", "JONATAS FAGUNDES", "PAULO SILAS"])
 
-FROTA_PADRAO = {
-    "CARREGADEIRA": ["CSP-078", "CSP-090", "CSP-091", "CSP-093", "CSP-094", "CSP-096", "CSP-097", "CSP-098", "CSP-100", "CSP-104", "CSP-106", "CSP-107"],
-    "ESCAVADEIRA": ["ESE-019", "ESE-023", "ESE-031", "ESE-036", "ESE-039", "ESE-047", "ESE-048", "ESE-049", "ESE-050", "ESE-053", "ESE-055", "LOC-3456", "LOC-7726"],
-    "CAMINHÃO": ["CAM-185", "CAM-250", "CAM-267", "CAM-279", "CAM-306"],
-    "MOTONIVELADORA": ["MON-021", "MON-022"],
-    "RETRO ESCAVADEIRA": ["RTE-029", "RTE-030", "RTE-034", "RTE-035"],
-    "TRATOR DE ESTEIRA": ["TSE-019", "TSE-036", "TSE-037", "TSE-046", "TSE-052"],
-    "MINI CARREGADEIRA / ESCAVADEIRA": ["MCP-007", "MEE-007"],
-    "PLANTAS": ["ALV-001", "CMB-002", "CMP-001", "USC-001"]
-}
+# --- MENU LATERAL ---
+aba = st.sidebar.radio("Navegação", ["Disponibilidade", "Equipamentos Utilizados", "Gestão de Frota", "Gestão de Pessoal"])
 
-COLAB_LISTA_NOVA = [
-    "ADILSON JESUS", "HANDREY FRITZ", "JONATAS FAGUNDES", "PAULO SILAS", "ALISSON NASCIMENTO",
-    "ANDRE LUIZ", "JULIO MESSIAS", "JOAO VICTOR", "JAMES RIBEIRO", "FELIPE SOUZA",
-    "JOSE CICERO", "HENRIQUE JESUS", "HIGOR PEREIRA", "JOAO MARCOS", "FELIPE ROCHA",
-    "PAULO HENRIQUE", "RENATO MARQUES", "FILIPE NASCIMENTO", "IGOR SÁ", "RIAN SANTOS",
-    "JUCELI SOLEDADE", "ALEXANDRO BATISTA", "RAFAEL BARCELLOS", "VINICIUS SOUZA",
-    "LUCAS NASCIMENTO", "RAFAEL TREVIZANELI", "FHELIPE SILVA", "LEONILSON SILVA"
-]
-
-def carregar_dados(arquivo, padrao):
-    if not os.path.exists(arquivo): return padrao
-    with open(arquivo, 'r', encoding='utf-8') as f:
-        try: return json.load(f)
-        except: return padrao
-
-def salvar_dados(arquivo, dados):
-    with open(arquivo, 'w', encoding='utf-8') as f:
-        json.dump(dados, f, indent=4, ensure_ascii=False)
-
-def limpar_nome(n):
-    partes = n.split()
-    return " ".join(partes[:2]) if len(partes) >= 2 else n
-
-# Iniciar Dados
-frota = carregar_dados(ARQUIVO_FROTA, FROTA_PADRAO)
-colaboradores = carregar_dados(ARQUIVO_COLAB, sorted(COLAB_LISTA_NOVA))
-lista_completa_equip = sorted([item for sublist in frota.values() for item in sublist])
-
-# --- NAVEGAÇÃO ---
-st.sidebar.title("🏗️ Menu Principal")
-aba = st.sidebar.radio("Ir para:", ["Disponibilidade", "Equipamentos Utilizados", "Gestão de Frota", "Gestão de Pessoal"])
-
-# --- 1. DISPONIBILIDADE ---
+# --- ABA: DISPONIBILIDADE ---
 if aba == "Disponibilidade":
-    st.title("🚜 Disponibilidade")
+    st.title("🚜 Relatório de Disponibilidade")
     rel_d = {}
     for cat, lista in frota.items():
         with st.expander(f"📂 {cat}"):
@@ -82,9 +63,11 @@ if aba == "Disponibilidade":
         for c, l in rel_d.items(): res += f"{c}\n" + "\n".join(l) + "\n\n"
         st.code(res, language="text")
 
-# --- 2. UTILIZADOS ---
+# --- ABA: EQUIPAMENTOS UTILIZADOS ---
 elif aba == "Equipamentos Utilizados":
-    st.title("📋 Equipamentos Utilizados")
+    st.title("📋 Relatório de Utilizados")
+    lista_total = sorted([item for sublist in frota.values() for item in sublist])
+    
     c1, c2, c3 = st.columns(3)
     with c1: saud = st.selectbox("Saudação", ["Bom dia!!", "Boa tarde!!", "Boa noite!!"])
     with c2: let = st.selectbox("Letra", ["A", "B", "C", "D"])
@@ -95,55 +78,71 @@ elif aba == "Equipamentos Utilizados":
     with cp2: encar = st.selectbox("Encarregado", colaboradores)
 
     st.markdown("---")
-    disp = lista_completa_equip.copy()
+    disp = lista_total.copy()
     u24 = st.multiselect("24h", disp); disp = [e for e in disp if e not in u24]
     u12 = st.multiselect("12h", disp); disp = [e for e in disp if e not in u12]
     uadm = st.multiselect("ADM", disp); disp = [e for e in disp if e not in uadm]
     uev = st.multiselect("EVENTUAL", disp)
 
-    if st.button("GERAR"):
+    if st.button("GERAR TEXTO WHATSAPP"):
         txt = f"{saud}\nCom segurança.\n\nHoje, {data_em_portugues()}\nSegue relação:\n\n"
-        txt += f"Supervisor: {limpar_nome(superv)}\nEncarregado: {limpar_nome(encar)}\nLetra: {let}\nTurno: {tur}\n\n"
+        s_nome = " ".join(superv.split()[:2])
+        e_nome = " ".join(encar.split()[:2])
+        txt += f"Supervisor: {s_nome}\nEncarregado: {e_nome}\nLetra: {let}\nTurno: {tur}\n\n"
         for t, l in [("(24 horas)", u24), ("(12 horas)", u12), ("(ADM)", uadm), ("(EVENTUAL)", uev)]:
             if l:
                 txt += f"{t}\n"
-                for e in l: txt += f"✅ {e.replace('-', ' ', 1)} CASP\n"
+                for e in l: txt += f"✅ {e.replace('-', ' ')} CASP\n"
                 txt += "\n"
         st.code(txt, language="text")
 
-# --- 3. GESTÃO FROTA ---
+# --- ABA: GESTÃO DE FROTA ---
 elif aba == "Gestão de Frota":
     st.title("⚙️ Gerir Equipamentos")
-    with st.expander("➕ Adicionar"):
-        ca = st.selectbox("Categoria", list(frota.keys()))
-        na = st.text_input("Prefixo (Ex: ESE-048)")
-        if st.button("Salvar"):
-            frota[ca].append(na); salvar_dados(ARQUIVO_FROTA, frota); st.rerun()
+    with st.expander("➕ Criar/Adicionar"):
+        nova_cat = st.text_input("Nova Categoria (ou selecione abaixo)")
+        cat_sel = st.selectbox("Categorias Existentes", list(frota.keys()) if frota else ["Nenhuma"])
+        novo_e = st.text_input("Tag (Ex: ESE-048)")
+        if st.button("Salvar Equipamento"):
+            target = nova_cat if nova_cat else cat_sel
+            if target not in frota: frota[target] = []
+            if novo_e: frota[target].append(novo_e)
+            salvar_no_github("frota.json", frota)
+            st.rerun()
     with st.expander("✏️ Editar/Excluir"):
-        ce = st.selectbox("Categoria ", list(frota.keys()))
-        ie = st.selectbox("Equipamento", frota[ce])
-        ne = st.text_input("Novo Nome", value=ie)
-        c_ed1, c_ed2 = st.columns(2)
-        with c_ed1:
-            if st.button("Atualizar"):
-                idx = frota[ce].index(ie); frota[ce][idx] = ne; salvar_dados(ARQUIVO_FROTA, frota); st.rerun()
-        with c_ed2:
-            if st.button("Excluir"):
-                frota[ce].remove(ie); salvar_dados(ARQUIVO_FROTA, frota); st.rerun()
+        if frota:
+            ce = st.selectbox("Categoria ", list(frota.keys()))
+            ie = st.selectbox("Equipamento", frota[ce])
+            ne = st.text_input("Novo Nome", value=ie)
+            c_ed1, c_ed2 = st.columns(2)
+            with c_ed1:
+                if st.button("Atualizar"):
+                    frota[ce].remove(ie); frota[ce].append(ne)
+                    salvar_no_github("frota.json", frota); st.rerun()
+            with c_ed2:
+                if st.button("Excluir"):
+                    frota[ce].remove(ie)
+                    salvar_no_github("frota.json", frota); st.rerun()
 
-# --- 4. GESTÃO PESSOAL ---
+# --- ABA: GESTÃO DE PESSOAL ---
 elif aba == "Gestão de Pessoal":
-    st.title("👤 Gerir Colaboradores")
-    nc = st.text_input("Nome Completo")
-    if st.button("Adicionar"):
-        if nc: colaboradores.append(nc); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
-    st.markdown("---")
-    cr = st.selectbox("Editar/Remover Colaborador", colaboradores)
-    n_edit_c = st.text_input("Editar Nome Selecionado", value=cr)
-    ce1, ce2 = st.columns(2)
-    with ce1:
-        if st.button("Salvar Alteração"):
-            idx_c = colaboradores.index(cr); colaboradores[idx_c] = n_edit_c; salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
-    with ce2:
-        if st.button("Remover Permanentemente"):
-            colaboradores.remove(cr); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
+    st.title("👤 Gestão de Colaboradores")
+    with st.expander("➕ Adicionar Novo"):
+        novo_c = st.text_input("Nome Completo")
+        if st.button("Gravar no GitHub"):
+            if novo_c:
+                colaboradores.append(novo_c.upper())
+                salvar_no_github("colaboradores.json", sorted(colaboradores))
+                st.rerun()
+    if colaboradores:
+        c_sel = st.selectbox("Editar/Remover", colaboradores)
+        novo_n = st.text_input("Corrigir Nome", value=c_sel)
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Atualizar Nome"):
+                colaboradores.remove(c_sel); colaboradores.append(novo_n.upper())
+                salvar_no_github("colaboradores.json", sorted(colaboradores)); st.rerun()
+        with col2:
+            if st.button("Excluir Permanente"):
+                colaboradores.remove(c_sel)
+                salvar_no_github("colaboradores.json", colaboradores); st.rerun()
