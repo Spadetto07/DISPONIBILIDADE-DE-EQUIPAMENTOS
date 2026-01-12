@@ -65,31 +65,22 @@ with st.sidebar.expander("➕ Adicionar Máquina"):
             salvar_frota(frota)
             st.rerun()
 
-with st.sidebar.expander("❌ Remover Máquina"):
-    cat_rem = st.selectbox("Cat. para remover", list(frota.keys()))
-    item_rem = st.selectbox("Equipamento", frota[cat_rem])
-    if st.button("Remover"):
-        frota[cat_rem].remove(item_rem)
-        salvar_frota(frota)
-        st.rerun()
-
 # --- 3. INTERFACE PRINCIPAL ---
 st.title("🚜 Controle de Disponibilidade")
-st.info("Selecione os equipamentos. Vazio = ✅ | Com texto = ❌")
 
-relatorio_final = {}
+relatorio_final_dict = {}
 
 for categoria, lista in frota.items():
     with st.expander(f"📂 {categoria}", expanded=True):
         itens_selecionados = []
         for equip in lista:
-            # Substitui o primeiro hífen por espaço apenas para exibição se o usuário quiser
-            exibicao = equip.replace("-", " ", 1)
-            check = st.checkbox(f"{exibicao}", key=equip)
+            # Mostra no site com espaço em vez de hífen (ex: ESE 019)
+            exibicao_site = equip.replace("-", " ", 1)
+            check = st.checkbox(f"{exibicao_site}", key=equip)
             
             if check:
-                obs = st.text_input(f"Defeito para {exibicao}", key=f"obs_{equip}")
-                # Removemos o hífen da TAG para o relatório final (ex: ESE-019 vira ESE 019)
+                obs = st.text_input(f"Defeito para {exibicao_site}", key=f"obs_{equip}")
+                # Formata o nome para o relatório (ex: ESE 019)
                 equip_formatado = equip.replace("-", " ", 1)
                 
                 if obs:
@@ -98,7 +89,20 @@ for categoria, lista in frota.items():
                     itens_selecionados.append(f"✅ {equip_formatado}")
         
         if itens_selecionados:
-            relatorio_final[categoria] = itens_selecionados
+            relatorio_final_dict[categoria] = itens_selecionados
 
 # --- 4. GERADOR DE RELATÓRIO ---
-if st.button("GERAR RELATÓ
+if st.button("GERAR RELATÓRIO FINAL"):
+    if not relatorio_final_dict:
+        st.error("Selecione pelo menos um equipamento!")
+    else:
+        agora = datetime.now().strftime("%d/%m/%Y %H:%M")
+        # Cabeçalho limpo: apenas o título e a data
+        texto = f"DISPONIBILIDADE DE EQUIPAMENTOS - {agora}\n\n"
+        
+        for cat, linhas in relatorio_final_dict.items():
+            texto += f"{cat}\n"  # Categoria sem emoji
+            texto += "\n".join(linhas) + "\n\n"
+        
+        st.success("Relatório pronto! Clique em 'Copy' no canto da caixa abaixo.")
+        st.code(texto, language="text")
