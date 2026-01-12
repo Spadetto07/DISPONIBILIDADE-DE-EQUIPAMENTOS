@@ -65,9 +65,17 @@ with st.sidebar.expander("➕ Adicionar Máquina"):
             salvar_frota(frota)
             st.rerun()
 
+with st.sidebar.expander("❌ Remover Máquina"):
+    cat_rem = st.selectbox("Cat. para remover", list(frota.keys()))
+    item_rem = st.selectbox("Equipamento", frota[cat_rem])
+    if st.button("Remover"):
+        frota[cat_rem].remove(item_rem)
+        salvar_frota(frota)
+        st.rerun()
+
 # --- 3. INTERFACE PRINCIPAL ---
 st.title("🚜 Controle de Disponibilidade")
-st.info("Selecione os equipamentos. Campo vazio = ✅ | Com texto = ❌")
+st.info("Selecione os equipamentos. Vazio = ✅ | Com texto = ❌")
 
 relatorio_final = {}
 
@@ -75,31 +83,22 @@ for categoria, lista in frota.items():
     with st.expander(f"📂 {categoria}", expanded=True):
         itens_selecionados = []
         for equip in lista:
-            check = st.checkbox(f"{equip}", key=equip)
+            # Substitui o primeiro hífen por espaço apenas para exibição se o usuário quiser
+            exibicao = equip.replace("-", " ", 1)
+            check = st.checkbox(f"{exibicao}", key=equip)
+            
             if check:
-                obs = st.text_input(f"Defeito para {equip}", key=f"obs_{equip}")
+                obs = st.text_input(f"Defeito para {exibicao}", key=f"obs_{equip}")
+                # Removemos o hífen da TAG para o relatório final (ex: ESE-019 vira ESE 019)
+                equip_formatado = equip.replace("-", " ", 1)
+                
                 if obs:
-                    itens_selecionados.append(f"❌ {equip} - {obs}")
+                    itens_selecionados.append(f"❌ {equip_formatado} - {obs}")
                 else:
-                    itens_selecionados.append(f"✅ {equip}")
+                    itens_selecionados.append(f"✅ {equip_formatado}")
+        
         if itens_selecionados:
             relatorio_final[categoria] = itens_selecionados
 
 # --- 4. GERADOR DE RELATÓRIO ---
-if st.button("GERAR RELATÓRIO PARA COPIAR"):
-    if not relatorio_final:
-        st.error("Selecione pelo menos um equipamento!")
-    else:
-        agora = datetime.now().strftime("%d/%m/%Y %H:%M")
-        texto = f"📋 RELATÓRIO DE EQUIPAMENTOS - {agora}\n"
-        texto += "="*40 + "\n"
-        
-        for cat, linhas in relatorio_final.items():
-            texto += f"\n👉 {cat}\n"
-            texto += "\n".join(linhas) + "\n"
-            
-        texto += "\n" + "="*40 + "\nFim da passagem de turno."
-        
-        st.success("Relatório gerado! Use o botão 'Copy' abaixo.")
-        # O st.code cria automaticamente o botão de cópia no canto superior direito
-        st.code(texto, language="text")
+if st.button("GERAR RELATÓ
