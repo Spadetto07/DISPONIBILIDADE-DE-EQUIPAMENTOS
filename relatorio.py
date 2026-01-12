@@ -55,15 +55,38 @@ def salvar_frota(dados):
 frota = carregar_frota()
 
 # --- 2. GESTÃO NA BARRA LATERAL ---
-st.sidebar.header("⚙️ Configurações")
-with st.sidebar.expander("➕ Adicionar Máquina"):
-    cat_add = st.selectbox("Categoria", list(frota.keys()))
-    novo_nome = st.text_input("Nome/Tag")
-    if st.button("Salvar"):
+st.sidebar.header("⚙️ Configurações da Frota")
+
+# Adicionar
+with st.sidebar.expander("➕ Adicionar"):
+    cat_add = st.selectbox("Categoria", list(frota.keys()), key="add_cat")
+    novo_nome = st.text_input("Novo Equipamento")
+    if st.button("Salvar Novo"):
         if novo_nome:
             frota[cat_add].append(novo_nome)
             salvar_frota(frota)
             st.rerun()
+
+# Editar (NOVIDADE)
+with st.sidebar.expander("✏️ Editar"):
+    cat_edit = st.selectbox("Categoria", list(frota.keys()), key="edit_cat")
+    item_para_editar = st.selectbox("Selecionar Máquina", frota[cat_edit], key="item_edit")
+    novo_nome_editado = st.text_input("Novo Nome/Texto", value=item_para_editar)
+    if st.button("Salvar Alteração"):
+        # Localiza o índice do item antigo e substitui pelo novo
+        index = frota[cat_edit].index(item_para_editar)
+        frota[cat_edit][index] = novo_nome_editado
+        salvar_frota(frota)
+        st.rerun()
+
+# Excluir
+with st.sidebar.expander("❌ Excluir"):
+    cat_rem = st.selectbox("Categoria", list(frota.keys()), key="rem_cat")
+    item_rem = st.selectbox("Máquina para Apagar", frota[cat_rem], key="item_rem")
+    if st.button("Confirmar Exclusão"):
+        frota[cat_rem].remove(item_rem)
+        salvar_frota(frota)
+        st.rerun()
 
 # --- 3. INTERFACE PRINCIPAL ---
 st.title("🚜 Controle de Disponibilidade")
@@ -74,13 +97,11 @@ for categoria, lista in frota.items():
     with st.expander(f"📂 {categoria}", expanded=True):
         itens_selecionados = []
         for equip in lista:
-            # Mostra no site com espaço em vez de hífen (ex: ESE 019)
             exibicao_site = equip.replace("-", " ", 1)
-            check = st.checkbox(f"{exibicao_site}", key=equip)
+            check = st.checkbox(f"{exibicao_site}", key=f"check_{equip}")
             
             if check:
                 obs = st.text_input(f"Defeito para {exibicao_site}", key=f"obs_{equip}")
-                # Formata o nome para o relatório (ex: ESE 019)
                 equip_formatado = equip.replace("-", " ", 1)
                 
                 if obs:
@@ -97,12 +118,11 @@ if st.button("GERAR RELATÓRIO FINAL"):
         st.error("Selecione pelo menos um equipamento!")
     else:
         agora = datetime.now().strftime("%d/%m/%Y %H:%M")
-        # Cabeçalho limpo: apenas o título e a data
         texto = f"DISPONIBILIDADE DE EQUIPAMENTOS - {agora}\n\n"
         
         for cat, linhas in relatorio_final_dict.items():
-            texto += f"{cat}\n"  # Categoria sem emoji
+            texto += f"{cat}\n"
             texto += "\n".join(linhas) + "\n\n"
         
-        st.success("Relatório pronto! Clique em 'Copy' no canto da caixa abaixo.")
+        st.success("Relatório pronto!")
         st.code(texto, language="text")
