@@ -150,8 +150,13 @@ elif aba == "Disponibilidade":
             itens = []
             for e in lista:
                 tag = formatar_prefixo(e)
-                if st.checkbox(f"{tag}", key=f"disp_{e}"):
-                    obs = st.text_input(f"Defeito para {tag}", key=f"obs_{e}")
+                # Linha 153 original: if st.checkbox(f"{tag}", key=f"disp_{e}"):
+# Mude para:
+if st.checkbox(f"{tag}", key=f"disp_{cat}_{e}"):
+
+# Linha 154 original: obs = st.text_input(f"Defeito para {tag}", key=f"obs_{e}")
+# Mude para:
+obs = st.text_input(f"Defeito para {tag}", key=f"obs_{cat}_{e}")
                     itens.append(f"❌ {tag} - {obs}" if obs else f"✅ {tag}")
             if itens: rel_d[cat] = itens
     if st.button("GERAR DISPONIBILIDADE"):
@@ -206,6 +211,7 @@ elif aba == "Gestão de Pessoal":
             colaboradores.remove(colab_remover)
             salvar_dados(ARQUIVO_COLAB, colaboradores)
             st.rerun()
+
 
 
 
