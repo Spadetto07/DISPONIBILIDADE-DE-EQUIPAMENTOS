@@ -17,6 +17,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 # --- 1. BANCO DE DADOS ---
 ARQUIVO_FROTA = 'frota.json'
 ARQUIVO_COLAB = 'colaboradores.json'
@@ -150,21 +151,20 @@ elif aba == "Disponibilidade":
             itens = []
             for e in lista:
                 tag = formatar_prefixo(e)
-                # Linha 153 original: if st.checkbox(f"{tag}", key=f"disp_{e}"):
-# Mude para:
-if st.checkbox(f"{tag}", key=f"disp_{cat}_{e}"):
-
-# Linha 154 original: obs = st.text_input(f"Defeito para {tag}", key=f"obs_{e}")
-# Mude para:
-obs = st.text_input(f"Defeito para {tag}", key=f"obs_{cat}_{e}")
+                # Chave única combinando Categoria e Equipamento
+                if st.checkbox(f"{tag}", key=f"disp_{cat}_{e}"):
+                    obs = st.text_input(f"Defeito para {tag}", key=f"obs_{cat}_{e}")
                     itens.append(f"❌ {tag} - {obs}" if obs else f"✅ {tag}")
-            if itens: rel_d[cat] = itens
+            if itens: 
+                rel_d[cat] = itens
+                
     if st.button("GERAR DISPONIBILIDADE"):
         texto = f"DISPONIBILIDADE DE EQUIPAMENTOS - {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
-        for c, l in rel_d.items(): texto += f"{c}\n" + "\n".join(l) + "\n\n"
+        for c, l in rel_d.items(): 
+            texto += f"{c}\n" + "\n".join(l) + "\n\n"
         st.code(texto, language="text")
 
-# --- 3. GESTÃO DE FROTA (ADICIONAR/EDITAR/EXCLUIR) ---
+# --- 3. GESTÃO DE FROTA ---
 elif aba == "Gestão de Frota":
     st.title("⚙️ Gestão de Equipamentos")
     
@@ -211,7 +211,3 @@ elif aba == "Gestão de Pessoal":
             colaboradores.remove(colab_remover)
             salvar_dados(ARQUIVO_COLAB, colaboradores)
             st.rerun()
-
-
-
-
