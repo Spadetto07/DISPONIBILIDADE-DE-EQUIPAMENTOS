@@ -23,14 +23,14 @@ ARQUIVO_FROTA = 'frota.json'
 ARQUIVO_COLAB = 'colaboradores.json'
 
 FROTA_PADRAO = {
+    "CAMINHÃO": ["CAM-185", "CAM-250", "CAM-267", "CAM-279", "CAM-306"],
     "CARREGADEIRA": ["CSP-078", "CSP-090", "CSP-091", "CSP-093", "CSP-094", "CSP-096", "CSP-097", "CSP-098", "CSP-100", "CSP-104", "CSP-106", "CSP-107"],
     "ESCAVADEIRA": ["ESE-019", "ESE-023", "ESE-031", "ESE-036", "ESE-039", "ESE-047", "ESE-048", "ESE-049", "ESE-050", "ESE-053", "ESE-055", "LOC-3456", "LOC-7726"],
-    "CAMINHÃO": ["CAM-185", "CAM-250", "CAM-267", "CAM-279", "CAM-306"],
-    "MOTONIVELADORA": ["MON-021", "MON-022"],
-    "RETRO ESCAVADEIRA": ["RTE-029", "RTE-030", "RTE-034", "RTE-035"],
-    "TRATOR DE ESTEIRA": ["TSE-019", "TSE-036", "TSE-037", "TSE-046", "TSE-052"],
     "MINI CARREGADEIRA / ESCAVADEIRA": ["MCP-007", "MEE-007"],
-    "PLANTAS": ["ALV-001", "CMB-002", "CMP-001", "USC-001"]
+    "MOTONIVELADORA": ["MON-021", "MON-022"],
+    "PLANTAS": ["ALV-001", "CMB-002", "CMP-001", "USC-001"],
+    "RETRO ESCAVADEIRA": ["RTE-029", "RTE-030", "RTE-034", "RTE-035"],
+    "TRATOR DE ESTEIRA": ["TSE-019", "TSE-036", "TSE-037", "TSE-046", "TSE-052"]
 }
 
 COLAB_PADRAO = [
@@ -66,8 +66,11 @@ def data_em_portugues():
     agora = datetime.now()
     return f"{dias_semana[agora.strftime('%A')]}, dia {agora.strftime('%d')} de {meses[agora.strftime('%B')]} de {agora.strftime('%Y')}"
 
-# Carregar dados iniciais
-frota = carregar_dados(ARQUIVO_FROTA, FROTA_PADRAO)
+# --- CARREGAMENTO E ORDENAÇÃO AUTOMÁTICA ---
+frota_raw = carregar_dados(ARQUIVO_FROTA, FROTA_PADRAO)
+# Ordena as chaves (categorias) e os itens dentro de cada categoria
+frota = {k: sorted(v) for k, v in sorted(frota_raw.items())}
+
 colaboradores = sorted(carregar_dados(ARQUIVO_COLAB, COLAB_PADRAO))
 lista_total = sorted([item for sublist in frota.values() for item in sublist])
 
@@ -151,7 +154,6 @@ elif aba == "Disponibilidade":
             itens = []
             for e in lista:
                 tag = formatar_prefixo(e)
-                # Chave única combinando Categoria e Equipamento
                 if st.checkbox(f"{tag}", key=f"disp_{cat}_{e}"):
                     obs = st.text_input(f"Defeito para {tag}", key=f"obs_{cat}_{e}")
                     itens.append(f"❌ {tag} - {obs}" if obs else f"✅ {tag}")
@@ -169,7 +171,7 @@ elif aba == "Gestão de Frota":
     st.title("⚙️ Gestão de Equipamentos")
     
     with st.expander("➕ Adicionar Novo Equipamento"):
-        c_add = st.selectbox("Categoria para adicionar", list(frota.keys()))
+        c_add = st.selectbox("Categoria para adicionar", sorted(list(frota.keys())))
         n_add = st.text_input("Novo Prefixo (Ex: ESE-048)")
         if st.button("Salvar Novo"):
             if n_add:
@@ -178,8 +180,8 @@ elif aba == "Gestão de Frota":
                 st.rerun()
 
     with st.expander("✏️ Editar Nome de Equipamento"):
-        c_ed = st.selectbox("Categoria ", list(frota.keys()))
-        item_ed = st.selectbox("Equipamento para editar", frota[c_ed])
+        c_ed = st.selectbox("Categoria ", sorted(list(frota.keys())))
+        item_ed = st.selectbox("Equipamento para editar", sorted(frota[c_ed]))
         n_ed = st.text_input("Novo Nome", value=item_ed)
         if st.button("Salvar Alteração"):
             idx = frota[c_ed].index(item_ed)
@@ -188,8 +190,8 @@ elif aba == "Gestão de Frota":
             st.rerun()
 
     with st.expander("❌ Excluir Equipamento"):
-        c_rm = st.selectbox("Categoria  ", list(frota.keys()))
-        item_rm = st.selectbox("Equipamento para apagar", frota[c_rm])
+        c_rm = st.selectbox("Categoria  ", sorted(list(frota.keys())))
+        item_rm = st.selectbox("Equipamento para apagar", sorted(frota[c_rm]))
         if st.button("Confirmar Exclusão"):
             frota[c_rm].remove(item_rm)
             salvar_dados(ARQUIVO_FROTA, frota)
