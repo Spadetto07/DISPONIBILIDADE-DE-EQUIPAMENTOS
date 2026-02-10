@@ -112,6 +112,7 @@ if aba == "Equipamentos Utilizados":
     if "maquinas_regime" not in st.session_state:
         st.session_state.maquinas_regime = {m: None for m in lista_total}
 
+    # Lista vertical alfabética para seleção rápida
     for m in lista_total:
         tag = formatar_prefixo(m)
         ja_selecionada = st.session_state.maquinas_regime.get(m) == regime_pincel
@@ -129,6 +130,7 @@ if aba == "Equipamentos Utilizados":
             if sup_casp: txt += f"Supervisor: {limpar_nome_colab(sup_casp)}\n"
             if ctrl_casp: txt += f"Controlador: {limpar_nome_colab(ctrl_casp)}\n\n"
         
+        # Saída formatada com legendas por categoria
         for titulo_regime, chave in [("(24 horas)", "24h"), ("(12 horas)", "12h"), ("(ADM)", "ADM"), ("(EVENTUAL)", "EV")]:
             maquinas_ativas = [m for m, r in st.session_state.maquinas_regime.items() if r == chave]
             if maquinas_ativas:
@@ -136,7 +138,7 @@ if aba == "Equipamentos Utilizados":
                 for categoria, lista_m in frota.items():
                     m_nesta_cat = [m for m in maquinas_ativas if m in lista_m]
                     if m_nesta_cat:
-                        txt += f"*{categoria}S*\n"
+                        txt += f"*{categoria}S*\n" # Legenda em negrito
                         for e in sorted(m_nesta_cat):
                             txt += f"- {formatar_prefixo(e)} CASP\n"
                 txt += "\n"
@@ -172,9 +174,9 @@ elif aba == "Atividades CASP":
     with c2: l_c = st.selectbox("Letra", ["A", "B", "C", "D"], key="l_c")
     with c3: t_c = st.selectbox("Turno", ["06:00 às 18:00", "18:00 às 06:00"], key="t_c")
 
-    rec_lista = sorted(["Lama de Aciaria - 2B", "Lama de Alto Forno - P11", "Lama de ETF - P10", "Lama de Varrição - P10", "Resíduo de Varrição - P10", "Lama do Tratamento de Gás - P06", "Lama TK4 - P06", "Lama TK2 (Bacia 03) - P10", "Lama ETB - P6", "Lama do Lava Rodas", "Pó do Despoeiramento (Kopron) - P06", "Pó do Balão", "Pó do 'EP' (P10)", "RESC - P06/P10", "Resíduo de Escavação - P10", "Resíduo de Raspagem de Solo", "Dry Pit - P1", "Blende Siderúrgico", "Geobag - P1", "Escória Granulada - P13", "R-POF Venda", "FMM Calcita", "Sidercal - PAS", "RH1/RH2 - UBC", "Refratário RIP - Rotatória", "Hotcar - Galpão Kopron", "Lama de Escória - P10", "Lixo de Briquetagem", "Rejeito Geral (Vale)", "Rejeito de Briquetagem (Vale)", "Resíduo impureza 3a4 (Vale)", "Água contaminada óleo (P10)"])
+    rec_lista = sorted(["Lama de Aciaria - 2B", "Lama de Alto Forno - P11", "Lama de ETF - P10", "Lama de Varrição - P10", "Resíduo de Varrição - P10", "Lama do Tratamento de Gás - P06", "Lama TK4 - P06", "Lama TK2 (Bacia 03) - P10", "Lama ETB - P6", "Lama do Lava Rodas", "Pó do Despoeiramento - P06", "Pó do Balão", "Pó do 'EP' (P10)", "RESC - P06/P10", "Resíduo de Escavação - P10", "Resíduo de Raspagem de Solo", "Dry Pit - P1", "Blende Siderúrgico", "Geobag - P1", "Escória Granulada - P13", "R-POF Venda", "FMM Calcita", "Sidercal - PAS", "RH1/RH2 - UBC", "Refratário RIP - Rotatória", "Hotcar - Galpão Kopron", "Lama de Escória - P10", "Lixo de Briquetagem", "Rejeito Geral (Vale)", "Rejeito de Briquetagem (Vale)", "Resíduo impureza 3a4 (Vale)", "Água contaminada óleo (P10)"])
     sai_lista = sorted(["Siderita", "Dry Pit - P1", "Ecocarbo I", "Ecocarbo II", "R-POF p/ PM", "R-POF Venda", "R-Mix", "R-Bit p/ PM", "Lama de Alto Forno (Cooproves)", "Lama de Aciaria (Cooproves)", "Resíduos Sólidos (Cooproves)", "Pó do Balão (p/ PM)", "0a19 Tc5 Britado (p/ PAS)", "0a19 RCC (Pilha 1E/1F)", "Refratário da Coqueria", "Sucata TA de LD", "Sucata F1", "Sucata 3A8", "Sucata de RBIT", "Carvão Vegetal (SunCoke)", "Lastro de Coque", "Pilha 1E/1C/1F", "Válvulas R3", "Degradado de Carbono", "Minério Usina 08", "Siderita Zerada (P03)"])
-    atv_lista = sorted(["Rotina de organização dos pátios, pilhas e baias", "Carregamento e rechego dos materiais (otimização de espaço)", "Carregamento e transporte de Lama de alto forno bruta para peneira verde", "Corte de lama de aciaria (2B) para Cooproves", "rechego e mistura siderita P13", "Blend Pó de Despoeiramento x RIND Bruto", "Carregamento de R-pof P/ PM", "Abastecimento de Peneira Magnética ou Verde", "Limpeza de canaletas e Wind Fence", "Segregação de metálicos com eletroímã", "Retirada de panos da grelha", "Nivelamento de pátio (Patrol)", "Confecção de taludes de contenção", "Retirada de 'negativo' das pilhas", "Empilhamento de 0A19 / RCC", "Aterramento da baia da balança", "Identificação de caminho seguro", "Transporte material limpeza bacia p/ P11", "Rechego de R-pof pátio 2A", "Carregamento e transporte de R-Mix p/ PM"])
+    atv_lista = sorted(["Rotina de organização dos pátios, pilhas e baias", "Carregamento e rechego de materiais (otimização de espaço)", "Carregamento e transporte de Lama de alto forno bruta para peneira verde", "Corte de lama de aciaria (2B) para Cooproves", "rechego e mistura siderita P13", "Blend Pó de Despoeiramento x RIND Bruto", "Carregamento de R-pof P/ PM", "Abastecimento de Peneira Magnética ou Verde", "Limpeza de canaletas e Wind Fence", "Segregação de metálicos com eletroímã", "Retirada de panos da grelha", "Nivelamento de pátio (Patrol)", "Confecção de taludes de contenção", "Retirada de 'negativo' das pilhas", "Empilhamento de 0A19 / RCC", "Aterramento da baia da balança", "Identificação de caminho seguro", "Transporte material limpeza bacia p/ P11", "Rechego de R-pof pátio 2A", "Carregamento e transporte de R-Mix p/ PM"])
 
     st.subheader("📥 Recebimento")
     sel_rec = [i for i in rec_lista if st.checkbox(i, key=f"r_{i}")]
