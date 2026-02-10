@@ -70,7 +70,6 @@ def data_em_portugues():
 frota_raw = carregar_dados(ARQUIVO_FROTA, FROTA_PADRAO)
 frota = {k: sorted(v) for k, v in sorted(frota_raw.items())}
 colaboradores = sorted(carregar_dados(ARQUIVO_COLAB, COLAB_PADRAO))
-lista_total = sorted([item for sublist in frota.values() for item in sublist])
 
 # --- NAVEGAÇÃO ---
 st.sidebar.title("🏗️ Menu Principal")
@@ -96,30 +95,24 @@ if aba == "Equipamentos Utilizados":
             enc_pas = st.selectbox("PAS - Encarregado", colaboradores)
             ctrl_bacia = st.selectbox("Controlador da Bacia", colaboradores)
             
-    st.subheader("🛠️ Executadores - ADM")
-    col_adm1, col_adm2 = st.columns(2)
-    with col_adm1:
-        exec1_nome = st.selectbox("Executador 1", colaboradores)
-        exec1_task = st.text_input("Tarefa 1", value="Confecção do caminhão seguro em frente ao pátio 6.")
-    with col_adm2:
-        exec2_nome = st.selectbox("Executador 2", colaboradores)
-        exec2_task = st.text_input("Tarefa 2", value="Limpeza pelo pátio 6, dando prioridade às canaletas.")
-
     st.markdown("---")
     st.subheader("🚜 Seleção de Máquinas")
     regime_pincel = st.segmented_control("Selecionar Regime:", options=["24h", "12h", "ADM", "EV"], default="24h")
 
     if "maquinas_regime" not in st.session_state:
-        st.session_state.maquinas_regime = {m: None for m in lista_total}
+        st.session_state.maquinas_regime = {}
 
-    # Lista vertical alfabética para seleção rápida
-    for m in lista_total:
-        tag = formatar_prefixo(m)
-        ja_selecionada = st.session_state.maquinas_regime.get(m) == regime_pincel
-        if st.checkbox(f"{tag}", value=ja_selecionada, key=f"ut_{m}_{regime_pincel}"):
-            st.session_state.maquinas_regime[m] = regime_pincel
-        elif ja_selecionada:
-            st.session_state.maquinas_regime[m] = None
+    # VISUALIZAÇÃO COM LEGENDAS POR CATEGORIA (A-Z)
+    for categoria, lista_m in frota.items():
+        st.markdown(f"**{categoria}S**") # Legenda na tela de escolha
+        for m in lista_m:
+            tag = formatar_prefixo(m)
+            ja_selecionada = st.session_state.maquinas_regime.get(m) == regime_pincel
+            if st.checkbox(f"{tag}", value=ja_selecionada, key=f"ut_{m}_{regime_pincel}"):
+                st.session_state.maquinas_regime[m] = regime_pincel
+            elif ja_selecionada:
+                st.session_state.maquinas_regime[m] = None
+        st.write("")
 
     if st.button("GERAR RELATÓRIO WHATSAPP"):
         txt = f"{saudacao}\nCom segurança.\n\n{data_em_portugues()}\n\nSegue a relação de equipamentos utilizados:\n\n"
@@ -130,17 +123,13 @@ if aba == "Equipamentos Utilizados":
             if sup_casp: txt += f"Supervisor: {limpar_nome_colab(sup_casp)}\n"
             if ctrl_casp: txt += f"Controlador: {limpar_nome_colab(ctrl_casp)}\n\n"
         
-        # Saída formatada com legendas por categoria
+        # GERAÇÃO DO RELATÓRIO IGUAL À FOTO (SEM LEGENDAS DE CATEGORIA NO MEIO)
         for titulo_regime, chave in [("(24 horas)", "24h"), ("(12 horas)", "12h"), ("(ADM)", "ADM"), ("(EVENTUAL)", "EV")]:
             maquinas_ativas = [m for m, r in st.session_state.maquinas_regime.items() if r == chave]
             if maquinas_ativas:
-                txt += f"{titulo_regime}\n\n"
-                for categoria, lista_m in frota.items():
-                    m_nesta_cat = [m for m in maquinas_ativas if m in lista_m]
-                    if m_nesta_cat:
-                        txt += f"*{categoria}S*\n" # Legenda em negrito
-                        for e in sorted(m_nesta_cat):
-                            txt += f"- {formatar_prefixo(e)} CASP\n"
+                txt += f"{titulo_regime}\n"
+                for e in sorted(maquinas_ativas):
+                    txt += f"✅ {formatar_prefixo(e)} CASP\n"
                 txt += "\n"
         st.code(txt, language="text")
 
