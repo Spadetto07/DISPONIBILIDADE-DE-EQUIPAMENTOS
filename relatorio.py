@@ -5,18 +5,15 @@ from datetime import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Gestão de Obra Pro", layout="wide")
-st.markdown(
-    """
-    <head>
-        <meta name="mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        <link rel="icon" sizes="192x192" href="https://cdn-icons-png.flaticon.com/512/4342/4342728.png">
-        <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/4342/4342728.png">
-    </head>
-    """,
-    unsafe_allow_html=True
-)
+
+# CSS para melhorar a estética dos cards e seletores
+st.markdown("""
+    <style>
+    .stCheckbox { background-color: #262730; padding: 5px; border-radius: 5px; margin-bottom: 2px; }
+    .status-box { border: 1px solid #4B4B4B; padding: 10px; border-radius: 10px; background-color: #1E1E1E; margin-bottom: 10px; }
+    .category-header { color: #FF4B4B; font-weight: bold; margin-top: 15px; border-bottom: 1px solid #333; }
+    </style>
+    """, unsafe_allow_html=True)
 
 # --- 1. BANCO DE DADOS ---
 ARQUIVO_FROTA = 'frota.json'
@@ -33,14 +30,7 @@ FROTA_PADRAO = {
     "TRATOR DE ESTEIRA": ["TSE-019", "TSE-036", "TSE-037", "TSE-046", "TSE-052"]
 }
 
-COLAB_PADRAO = [
-    "", "ADILSON DE JESUS SANTOS", "HANDREY FRITZ SERAFIM", "JONATAS FAGUNDES DA COSTA", 
-    "PAULO SILAS PONATH", "JOAO VICTOR OLIVEIRA CORATO GABRIEL", "JAMES RIBEIRO CARNEIRO", 
-    "FELIPE DE SOUZA BISPO", "JOSE CICERO CORREIA DA SILVA", "HIGOR PEREIRA SILVA DE JESUS", 
-    "JOAO MARCOS BARONE DE SOUSA", "FELIPE ROCHA PEREIRA", "PAULO HENRIQUE OLIVEIRA DOS SANTOS", 
-    "RENATO MARQUES CAMPOREZ", "IGOR SÁ", "JUCELI DA SOLEDADE OLIVEIRA", "VINICIUS DE SOUZA SPADETO",
-    "ALEXANDRO BATISTA COSTA", "RAFAEL BARCELLOS", "LUCAS NASCIMENTO", "FHELIPE SILVA", "LEONILSON SILVA"
-]
+COLAB_PADRAO = ["", "ADILSON DE JESUS SANTOS", "HANDREY FRITZ SERAFIM", "JONATAS FAGUNDES DA COSTA", "PAULO SILAS PONATH", "JOAO VICTOR OLIVEIRA CORATO GABRIEL", "JAMES RIBEIRO CARNEIRO", "FELIPE DE SOUZA BISPO", "JOSE CICERO CORREIA DA SILVA", "HIGOR PEREIRA SILVA DE JESUS", "JOAO MARCOS BARONE DE SOUSA", "FELIPE ROCHA PEREIRA", "PAULO HENRIQUE OLIVEIRA DOS SANTOS", "RENATO MARQUES CAMPOREZ", "IGOR SÁ", "JUCELI DA SOLEDADE OLIVEIRA", "VINICIUS DE SOUZA SPADETO", "ALEXANDRO BATISTA COSTA", "RAFAEL BARCELLOS", "LUCAS NASCIMENTO", "FHELIPE SILVA", "LEONILSON SILVA"]
 
 def carregar_dados(arquivo, padrao):
     if not os.path.exists(arquivo): return padrao
@@ -49,11 +39,9 @@ def carregar_dados(arquivo, padrao):
     except: return padrao
 
 def salvar_dados(arquivo, dados):
-    with open(arquivo, 'w', encoding='utf-8') as f:
-        json.dump(dados, f, indent=4, ensure_ascii=False)
+    with open(arquivo, 'w', encoding='utf-8') as f: json.dump(dados, f, indent=4, ensure_ascii=False)
 
-def formatar_prefixo(nome):
-    return nome.split(" ")[0].replace("-", " ")
+def formatar_prefixo(nome): return nome.split(" ")[0].replace("-", " ")
 
 def limpar_nome_colab(nome_completo):
     if not nome_completo: return ""
@@ -70,89 +58,84 @@ def data_em_portugues():
 frota_raw = carregar_dados(ARQUIVO_FROTA, FROTA_PADRAO)
 frota = {k: sorted(v) for k, v in sorted(frota_raw.items())}
 colaboradores = sorted(carregar_dados(ARQUIVO_COLAB, COLAB_PADRAO))
-lista_total = sorted([item for sublist in frota.values() for item in sublist])
 
 # --- NAVEGAÇÃO ---
 st.sidebar.title("🏗️ Menu Principal")
 aba = st.sidebar.radio("Escolha:", ["Equipamentos Utilizados", "Disponibilidade", "Atividades CASP", "Gestão de Frota", "Gestão de Pessoal"])
 
-# --- 1. EQUIPAMENTOS UTILIZADOS (NOVO LAYOUT GRID) ---
+# --- 1. EQUIPAMENTOS UTILIZADOS ---
 if aba == "Equipamentos Utilizados":
-    st.title("📋 Relação de Equipamentos Utilizados")
+    st.title("📋 Painel de Utilização de Máquinas")
     
     col1, col2, col3 = st.columns(3)
     with col1: saudacao = st.selectbox("Saudação", ["Bom dia!!", "Boa tarde!!", "Boa noite!!"])
     with col2: letra = st.selectbox("Letra", ["A", "B", "C", "D"])
     with col3: turno = st.selectbox("Turno", ["06:00 às 18:00", "18:00 às 06:00"])
 
-    st.subheader("👥 Equipe e Setores")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        sup_casp = st.selectbox("CASP - Supervisor", colaboradores)
-        ctrl_casp = st.selectbox("CASP - Controlador", colaboradores)
-    with c2:
-        enc_c8 = st.selectbox("CANTEIRO 8 - Encarregado", colaboradores)
-        ctrl_c8 = st.selectbox("CANTEIRO 8 - Controlador", colaboradores)
-    with c3:
-        enc_pas = st.selectbox("PAS - Encarregado", colaboradores)
-        ctrl_bacia = st.selectbox("Controlador da Bacia", colaboradores)
-            
+    st.subheader("👥 Equipe Responsável")
+    with st.expander("Definir Colaboradores", expanded=False):
+        c1, c2 = st.columns(2)
+        with c1:
+            sup_casp = st.selectbox("CASP - Supervisor", colaboradores)
+            ctrl_casp = st.selectbox("CASP - Controlador", colaboradores)
+            enc_c8 = st.selectbox("CANTEIRO 8 - Encarregado", colaboradores)
+        with c2:
+            ctrl_c8 = st.selectbox("CANTEIRO 8 - Controlador", colaboradores)
+            enc_pas = st.selectbox("PAS - Encarregado", colaboradores)
+            ctrl_bacia = st.selectbox("Controlador da Bacia", colaboradores)
+
     st.markdown("---")
-    st.subheader("🚜 Seleção de Máquinas (Clique para selecionar)")
+    st.subheader("🚜 Distribuição de Máquinas")
     
-    # Organizando por categoria em grids
-    u24, u12, uadm, uev = [], [], [], []
+    # Lógica de seleção por chips/grid
+    selecoes = {"24h": [], "12h": [], "ADM": [], "EV": []}
     
-    for cat, máquinas in frota.items():
-        st.write(f"**{cat}**")
-        cols = st.columns(6) # 6 colunas para caber tudo na tela
-        for idx, m in enumerate(máquinas):
-            tag = formatar_prefixo(m)
-            with cols[idx % 6]:
-                # Usando selectbox pequeno ou checkbox para definir o regime
-                regime = st.selectbox(tag, ["-", "24h", "12h", "ADM", "EV"], key=f"util_{m}")
-                if regime == "24h": u24.append(m)
-                elif regime == "12h": u12.append(m)
-                elif regime == "ADM": uadm.append(m)
-                elif regime == "EV": uev.append(m)
-        st.markdown("---")
+    for cat, maquinas in frota.items():
+        st.markdown(f"<div class='category-header'>{cat}</div>", unsafe_allow_html=True)
+        # Criar colunas para os cards (4 por linha)
+        cols_grid = st.columns(4)
+        for idx, m in enumerate(maquinas):
+            with cols_grid[idx % 4]:
+                tag = formatar_prefixo(m)
+                # Radio horizontal para escolha rápida do turno
+                regime = st.radio(f"**{tag}**", ["-", "24h", "12h", "ADM", "EV"], key=f"ut_{m}", horizontal=True, label_visibility="visible")
+                if regime != "-":
+                    selecoes[regime].append(m)
 
     if st.button("GERAR RELATÓRIO WHATSAPP", use_container_width=True):
         txt = f"{saudacao}\nCom segurança.\n\n{data_em_portugues()}\n\nSegue a relação de equipamentos utilizados:\n\n"
         txt += f"Letra: {letra}\nTurno: {turno}\n\n"
         
+        # Pessoal
         if sup_casp or ctrl_casp:
             txt += "CASP\n"
             if sup_casp: txt += f"Supervisor: {limpar_nome_colab(sup_casp)}\n"
-            if ctrl_casp: txt += f"Controlador: {limpar_nome_colab(ctrl_casp)}\n\n"
-        if enc_c8 or ctrl_c8:
-            txt += "CANTEIRO 8\n"
-            if enc_c8: txt += f"Encarregado: {limpar_nome_colab(enc_c8)}\n"
-            if ctrl_c8: txt += f"Controlador: {limpar_nome_colab(ctrl_c8)}\n\n"
-        if enc_pas: txt += f"PAS\nEncarregado: {limpar_nome_colab(enc_pas)}\n\n"
-        if ctrl_bacia: txt += f"CONTROLADOR DA BACIA: {limpar_nome_colab(ctrl_bacia)}\n\n"
-            
-        for tit, lista in [("(24 horas)", u24), ("(12 horas)", u12), ("(ADM)", uadm), ("(EVENTUAL)", uev)]:
-            if lista:
-                txt += f"{tit}\n"
-                for e in lista: txt += f"✅ {formatar_prefixo(e)} CASP\n"
+            if ctrl_casp: txt += f"Controlador: {limpar_nome_colab(ctrl_casp)}\n"
+            txt += "\n"
+        
+        # Máquinas por regime
+        regimes_map = {"24h": "(24 horas)", "12h": "(12 horas)", "ADM": "(ADM)", "EV": "(EVENTUAL)"}
+        for sigla, titulo in regimes_map.items():
+            if selecoes[sigla]:
+                txt += f"{titulo}\n"
+                for e in selecoes[sigla]:
+                    txt += f"✅ {formatar_prefixo(e)} CASP\n"
                 txt += "\n"
+        
         st.code(txt, language="text")
 
-# --- 2. DISPONIBILIDADE (LAYOUT GRID DIRETO) ---
+# --- 2. DISPONIBILIDADE ---
 elif aba == "Disponibilidade":
     st.title("🚜 Relatório de Disponibilidade")
-    st.write("Selecione os equipamentos que estão **COM DEFEITO**. Os não selecionados serão ✅ OK.")
-    
     defeitos = {}
     for cat, lista in frota.items():
         st.markdown(f"#### {cat}")
-        cols = st.columns(6)
+        cols = st.columns(4)
         for idx, e in enumerate(lista):
             tag = formatar_prefixo(e)
-            with cols[idx % 6]:
-                if st.checkbox(tag, key=f"disp_check_{e}"):
-                    obs = st.text_input("Defeito", key=f"obs_disp_{e}", placeholder="Causa...")
+            with cols[idx % 4]:
+                if st.checkbox(tag, key=f"disp_{e}"):
+                    obs = st.text_input("Defeito", key=f"obs_{e}", placeholder="Causa...")
                     defeitos[e] = obs if obs else "Manutenção"
         st.markdown("---")
                 
@@ -162,55 +145,37 @@ elif aba == "Disponibilidade":
             texto += f"*{cat}*\n"
             for e in lista:
                 tag = formatar_prefixo(e)
-                if e in defeitos:
-                    texto += f"❌ {tag} - {defeitos[e]}\n"
-                else:
-                    texto += f"✅ {tag}\n"
+                if e in defeitos: texto += f"❌ {tag} - {defeitos[e]}\n"
+                else: texto += f"✅ {tag}\n"
             texto += "\n"
         st.code(texto, language="text")
 
-# --- 3. ATIVIDADES CASP (GRID DE CLIQUES) ---
+# --- 3. ATIVIDADES CASP ---
 elif aba == "Atividades CASP":
-    st.title("📝 Painel de Atividades CASP")
+    st.title("📝 Relatório de Atividades CASP")
     c1, c2, c3 = st.columns(3)
-    with c1: data_c = st.date_input("Data", datetime.now())
-    with c2: letra_c = st.selectbox("Letra", ["A", "B", "C", "D"])
-    with c3: turno_c = st.selectbox("Turno", ["06:00 às 18:00", "18:00 às 06:00"])
+    with c1: d_c = st.date_input("Data", datetime.now())
+    with c2: l_c = st.selectbox("Letra", ["A", "B", "C", "D"], key="l_c")
+    with c3: t_c = st.selectbox("Turno", ["06:00 às 18:00", "18:00 às 06:00"], key="t_c")
 
     rec_lista = sorted(["Lama de Aciaria - 2B", "Lama de Alto Forno - P11", "Lama de ETF - P10", "Resíduo de Varrição - P10", "Lama do Tratamento de Gás - P06", "Lama TK4 - P06", "Lama ETB - P6", "RESC - P06/P10", "Drypit - P01/P13", "FMM Calcita", "RPOF Venda"])
     sai_lista = sorted(["Siderita", "Drypit", "Ecocarbo I", "Ecocarbo II", "R-POF p/ PM", "R-Mix p/ PM", "R-Bit p/ PM", "Lama AF (Cooproves)", "0a19 Tc5", "0a19 RCC"])
     atv_lista = ["Rotina de organização", "Carregamento e rechego", "Subida de Lama AF P11", "Corte de lama AC 2B", "Tombamento Siderita P13", "Blend Pó/RIND P06", "Limpeza canaletas/Wind Fence", "Segregação eletroímã", "Abastecimento Peneira", "Nivelamento de pátio"]
 
     st.markdown("### 📥 Recebimento")
-    sel_rec = []
-    cols_rec = st.columns(4)
-    for idx, item in enumerate(rec_lista):
-        if cols_rec[idx % 4].checkbox(item, key=f"rec_{item}"): sel_rec.append(item)
-
-    st.markdown("--- ### 📤 Saída")
-    sel_sai = []
-    cols_sai = st.columns(4)
-    for idx, item in enumerate(sai_lista):
-        if cols_sai[idx % 4].checkbox(item, key=f"sai_{item}"): sel_sai.append(item)
-
-    st.markdown("--- ### 🚜 Atividades")
-    sel_atv = []
-    cols_atv = st.columns(3)
-    for idx, item in enumerate(atv_lista):
-        if cols_atv[idx % 3].checkbox(item, key=f"atv_{item}"): sel_atv.append(item)
+    sel_rec = [i for i in rec_lista if st.checkbox(i, key=f"r_{i}")]
+    st.markdown("### 📤 Saída")
+    sel_sai = [i for i in sai_lista if st.checkbox(i, key=f"s_{i}")]
+    st.markdown("### 🚜 Atividades")
+    sel_atv = [i for i in atv_lista if st.checkbox(i, key=f"a_{i}")]
     
-    obs_c = st.text_area("Notas extras:")
-
-    if st.button("🚀 GERAR RELATÓRIO ATIVIDADES", use_container_width=True):
-        txt = f"Boa tarde a todos, com segurança!\n\n*Atividades CASP*\n\n📅 Data: {data_c.strftime('%d/%m/%Y')}\n🔠 Letra: {letra_c}\n⏰ Turno: {turno_c}\n\n📥 Recebimento de Materiais:\n"
+    if st.button("GERAR ATIVIDADES"):
+        txt = f"Boa tarde a todos, com segurança!\n\n*Atividades CASP*\n\n📅 Data: {d_c.strftime('%d/%m/%Y')}\n🔠 Letra: {l_c}\n⏰ Turno: {t_c}\n\n📥 Recebimento:\n"
         for i in sel_rec: txt += f"- {i} ✅\n"
-        txt += "\n📤 Saída de Materiais:\n"
+        txt += "\n📤 Saída:\n"
         for i in sel_sai: txt += f"- {i} ✅\n"
-        txt += "\n🚜 Atividades Executadas:\n"
+        txt += "\n🚜 Atividades:\n"
         for i in sel_atv: txt += f"- {i}\n"
-        if obs_c:
-            for line in obs_c.split('\n'):
-                if line.strip(): txt += f"- {line.strip()}\n"
         st.code(txt, language="text")
 
 # --- 4. GESTÃO DE FROTA ---
@@ -230,8 +195,3 @@ elif aba == "Gestão de Pessoal":
     if st.button("Adicionar Colaborador"):
         if novo_colab:
             colaboradores.append(novo_colab.upper()); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
-    st.markdown("---")
-    colab_remover = st.selectbox("Remover Colaborador", colaboradores)
-    if st.button("Remover Permanentemente"):
-        if colab_remover:
-            colaboradores.remove(colab_remover); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
