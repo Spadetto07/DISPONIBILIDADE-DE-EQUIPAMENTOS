@@ -70,6 +70,7 @@ def data_em_portugues():
 frota_raw = carregar_dados(ARQUIVO_FROTA, FROTA_PADRAO)
 frota = {k: sorted(v) for k, v in sorted(frota_raw.items())}
 colaboradores = sorted(carregar_dados(ARQUIVO_COLAB, COLAB_PADRAO))
+lista_total = sorted([item for sublist in frota.values() for item in sublist])
 
 # --- NAVEGAÇÃO ---
 st.sidebar.title("🏗️ Menu Principal")
@@ -97,21 +98,33 @@ if aba == "Equipamentos Utilizados":
             
     st.markdown("---")
     st.subheader("🚜 Seleção de Máquinas")
+    
     regime_pincel = st.segmented_control("Selecionar Regime:", options=["24h", "12h", "ADM", "EV"], default="24h")
 
     if "maquinas_regime" not in st.session_state:
         st.session_state.maquinas_regime = {}
 
-    # VISUALIZAÇÃO COM LEGENDAS POR CATEGORIA (A-Z)
+    # LÓGICA DE EXCLUSIVIDADE: 
+    # Mostra legendas para VOCÊ escolher na tela, mas valida se já existe em outro regime
     for categoria, lista_m in frota.items():
-        st.markdown(f"**{categoria}S**") # Legenda na tela de escolha
+        st.markdown(f"**{categoria}S**")
         for m in lista_m:
             tag = formatar_prefixo(m)
-            ja_selecionada = st.session_state.maquinas_regime.get(m) == regime_pincel
-            if st.checkbox(f"{tag}", value=ja_selecionada, key=f"ut_{m}_{regime_pincel}"):
+            
+            regime_atual = st.session_state.maquinas_regime.get(m)
+            
+            # Se a máquina está em outro regime (que não o selecionado no 'pincel'), ela fica desabilitada
+            is_disabled = regime_atual is not None and regime_atual != regime_pincel
+            label_extra = f" (já está em {regime_atual})" if is_disabled else ""
+            
+            checked = regime_atual == regime_pincel
+            
+            if st.checkbox(f"{tag}{label_extra}", value=checked, key=f"ut_{m}_{regime_pincel}", disabled=is_disabled):
                 st.session_state.maquinas_regime[m] = regime_pincel
-            elif ja_selecionada:
-                st.session_state.maquinas_regime[m] = None
+            elif not is_disabled:
+                # Se desmarcar o que estava marcado no regime atual
+                if m in st.session_state.maquinas_regime and st.session_state.maquinas_regime[m] == regime_pincel:
+                    del st.session_state.maquinas_regime[m]
         st.write("")
 
     if st.button("GERAR RELATÓRIO WHATSAPP"):
@@ -123,7 +136,7 @@ if aba == "Equipamentos Utilizados":
             if sup_casp: txt += f"Supervisor: {limpar_nome_colab(sup_casp)}\n"
             if ctrl_casp: txt += f"Controlador: {limpar_nome_colab(ctrl_casp)}\n\n"
         
-        # GERAÇÃO DO RELATÓRIO IGUAL À FOTO (SEM LEGENDAS DE CATEGORIA NO MEIO)
+        # RELATÓRIO FORMATADO CONFORME A FOTO: Agrupado por Regime
         for titulo_regime, chave in [("(24 horas)", "24h"), ("(12 horas)", "12h"), ("(ADM)", "ADM"), ("(EVENTUAL)", "EV")]:
             maquinas_ativas = [m for m, r in st.session_state.maquinas_regime.items() if r == chave]
             if maquinas_ativas:
@@ -175,7 +188,7 @@ elif aba == "Atividades CASP":
     sel_atv = [i for i in atv_lista if st.checkbox(i, key=f"a_{i}")]
     
     if st.button("🚀 GERAR RELATÓRIO ATIVIDADES"):
-        txt = f"Boa tarde a todos, com segurança!\n\n*Atividades CASP*\n\n📅 *Data:* {d_c.strftime('%d/%m/%Y')}\n🔠 *Letra:* {l_c}\n⏰ *Turno:* {t_c}\n\n📥 *Recebimento de Materiais:*\n"
+        txt = f"Boa tarde a todos, com segurança!\n\n*Atividades CASP*\n\n📅 *Data:* {d_casp.strftime('%d/%m/%Y')}\n🔠 *Letra:* {l_casp}\n⏰ *Turno:* {t_casp}\n\n📥 *Recebimento de Materiais:*\n"
         for i in sorted(sel_rec): txt += f"- {i} ✅\n"
         txt += "\n📤 *Saída de Materiais:*\n"
         for i in sorted(sel_sai): txt += f"- {i} ✅\n"
@@ -242,3 +255,4 @@ elif aba == "Gestão de Pessoal":
                 colaboradores.remove(colab_remover)
                 salvar_dados(ARQUIVO_COLAB, colaboradores)
                 st.rerun()
+                
