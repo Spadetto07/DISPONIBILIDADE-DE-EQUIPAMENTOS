@@ -66,7 +66,7 @@ def data_em_portugues():
     agora = datetime.now()
     return f"{dias_semana[agora.strftime('%A')]}, dia {agora.strftime('%d')} de {meses[agora.strftime('%B')]} de {agora.strftime('%Y')}"
 
-# --- CARREGAMENTO E ORDENAÇÃO AUTOMÁTICA ---
+# --- CARREGAMENTO ---
 frota_raw = carregar_dados(ARQUIVO_FROTA, FROTA_PADRAO)
 frota = {k: sorted(v) for k, v in sorted(frota_raw.items())}
 colaboradores = sorted(carregar_dados(ARQUIVO_COLAB, COLAB_PADRAO))
@@ -79,7 +79,6 @@ aba = st.sidebar.radio("Escolha:", ["Equipamentos Utilizados", "Disponibilidade"
 # --- 1. EQUIPAMENTOS UTILIZADOS ---
 if aba == "Equipamentos Utilizados":
     st.title("📋 Relação de Equipamentos Utilizados")
-    
     col1, col2, col3 = st.columns(3)
     with col1: saudacao = st.selectbox("Saudação", ["Bom dia!!", "Boa tarde!!", "Boa noite!!"])
     with col2: letra = st.selectbox("Letra", ["A", "B", "C", "D"])
@@ -163,7 +162,7 @@ elif aba == "Disponibilidade":
             texto += f"{c}\n" + "\n".join(l) + "\n\n"
         st.code(texto, language="text")
 
-# --- 3. ATIVIDADES CASP ---
+# --- 3. ATIVIDADES CASP (BANCO COMPLETO) ---
 elif aba == "Atividades CASP":
     st.title("📝 Relatório de Atividades CASP")
     c1, c2, c3 = st.columns(3)
@@ -171,18 +170,50 @@ elif aba == "Atividades CASP":
     with c2: l_casp = st.selectbox("Letra", ["A", "B", "C", "D"])
     with c3: t_casp = st.selectbox("Turno", ["06:00 às 18:00", "18:00 às 06:00"])
 
-    # Banco de materiais e atividades consolidado
-    rec_lista = sorted(["Lama de Aciaria - 2B", "Lama de Alto Forno - P11", "Lama de ETF", "Resíduo de Varrição", "Lama do Tratamento de Gás", "Blende Siderúrgico", "Lama TK4", "Pó do Despoeiramento", "Resíduo de Construção Civil", "Drypit - P01", "Escória Granulada", "RPOF Venda", "FMM Calcita"])
-    sai_lista = sorted(["Ecocarbo I", "Ecocarbo II", "Lama de ETF", "Drypit", "0a19 Tc5 Britado", "0a19 RCC", "Siderita", "R-POF", "R-Mix", "R-Bit", "Lama de Alto Forno (Cooproves)"])
-    atv_lista = ["Rotina de organização dos pátios, pilhas e baias", "Carregamento e rechego dos materiais (otimização de espaço)", "Subida de Lama AF Base/Topo P11", "Corte de lama de aciaria para carregamento", "Tombamento de Siderita (abertura de espaço)", "Blend Pó de Despoeiramento x RIND Bruto", "Limpeza de canaletas e Wind Fence", "Segregação de metálicos com eletroímã", "Abastecimento de Peneira Magnética/Verde"]
+    # BANCO DE DADOS COMPLETO EXTRAÍDO DOS RELATÓRIOS
+    rec_lista = sorted([
+        "Lama de Aciaria - 2B", "Lama de Alto Forno - P11", "Lama de ETF - P10", "Lama de Varrição - P10",
+        "Resíduo de Varrição - P10", "Lama do Tratamento de Gás - P06", "Lama TK4 - P06", "Lama TK2 (Bacia 03) - P10",
+        "Lama ETB - P6", "Lama do Lava Rodas", "Pó do Despoeiramento (Kopron) - P06", "Pó do Balão",
+        "Pó do 'EP' (P10 vindo do P1/P2)", "Resíduo de Construção Civil (RESC) - P06/P10", "Resíduo de Escavação - P10",
+        "Resíduo de Raspagem de Solo", "Drypit - P01 / P13", "Blende Siderúrgico", "Geobag - P1", "Escória Granulada - P13",
+        "RPOF de Venda - P2A", "FMM Cascalho Calcítico (Calcita) - P1", "Sidercal - PAS", "RH1 / RH2 - UBC",
+        "Refratário da Coqueria / LTQ / RIP - Rotatória", "Hotcar - Galpão Kopron", "Lama de Escória - P10",
+        "Lixo de Briquetagem", "Rejeito Geral (Vale)", "Rejeito de Briquetagem (Vale)", "Resíduo com impureza 3a4 (Vale)",
+        "Água contaminada com óleo/graxa (Bacia P10)"
+    ])
+    
+    sai_lista = sorted([
+        "Siderita (75 a 200mm) - P03 / P13", "Drypit (Médio não magnético)", "Ecocarbo I", "Ecocarbo II",
+        "R-POF (p/ Pátio de Minério)", "R-POF (Venda)", "R-Mix (p/ Pátio de Minério)", 
+        "R-Bit (p/ Pátio de Minério ou Peneira Magnética)", "Lama de Alto Forno (Cooproves / PAS / Kopron)",
+        "Lama de Aciaria (Carregamento Cooproves)", "Resíduos Sólidos (Carregamento Cooproves)",
+        "Pó do Balão (p/ Pátio de Minério)", "0a19 Tc5 Britado (p/ PAS)", "0a19 RCC (Pilha 1E / 1F)",
+        "Refratário da Coqueria / Convertedor", "Sucata TA de LD", "Sucata F1", "Sucata 3A8 (p/ Pátio de Sucatas)",
+        "Sucata de RBIT", "Carvão Vegetal (SunCoke)", "Lastro de Coque", "Pilha 1E / 1C / 1F", "Válvulas R3",
+        "Degradado de Carbono (Cossipress)", "Minério Usina 08", "Siderita Zerada (P03)"
+    ])
+    
+    atv_lista = [
+        "Rotina de organização dos pátios, pilhas e baias", "Carregamento e rechego de materiais (otimização de espaço)",
+        "Subida de Lama de Alto Forno (Base para Topo) - P11", "Corte de lama de aciaria (2B) para carregamento Cooproves",
+        "Tombamento de Siderita (P13) para abertura de espaço para grelha", "Blend Pó de Despoeiramento x RIND Bruto (Kopron P06)",
+        "Mistura e Blend do Pré-Mix (Escavadeira/Carregadeira) - P06", "Abastecimento de Peneira Magnética ou Peneira Verde",
+        "Limpeza de canaletas laterais, Wind Fence e bacia da balança (P11/P13/P2B)", "Segregação de metálicos/sucata com eletroímã (Nordberg/P1)",
+        "Retirada de panos da grelha da peneira verde", "Nivelamento e regularização de pátio (Motoniveladora/Patrol/Trator)",
+        "Confecção de taludes de contenção e separação (ETF/P11/Kopron)", "Retirada de 'negativo' das pilhas (Siderita/Drypit/0a19)",
+        "Empilhamento de 0A19 / RCC (Antiga Bacia)", "Aterramento da baia da balança (Lama AC - 2B)",
+        "Identificação de caminho seguro (pedestais e cordas)", "Transporte de material de limpeza de bacia para pátio 11",
+        "Raspagem de caçambas com escavadeira (Vix)", "Corte de RBIT Peneirado (P03) para carregamento"
+    ]
 
     st.subheader("📥 Recebimento de Materiais")
-    sel_rec = st.multiselect("Selecione os materiais recebidos:", rec_lista)
+    sel_rec = st.multiselect("Recebidos:", rec_lista)
     st.subheader("📤 Saída de Materiais")
-    sel_sai = st.multiselect("Selecione os materiais expedidos:", sai_lista)
+    sel_sai = st.multiselect("Saídas:", sai_lista)
     st.subheader("🚜 Atividades Executadas")
-    sel_atv = st.multiselect("Tarefas realizadas:", atv_lista)
-    obs_extra = st.text_area("Outras atividades/observações (uma por linha):")
+    sel_atv = st.multiselect("Tarefas:", atv_lista)
+    obs_casp = st.text_area("Notas extras (uma por linha):")
 
     if st.button("GERAR ATIVIDADES WHATSAPP"):
         txt = f"Boa tarde a todos, com segurança!\n\n*Atividades CASP*\n\n📅 Data: {d_casp.strftime('%d/%m/%Y')}\n🔠 Letra: {l_casp}\n⏰ Turno: {t_casp}\n\n📥 Recebimento de Materiais:\n"
@@ -191,8 +222,8 @@ elif aba == "Atividades CASP":
         for i in sel_sai: txt += f"- {i} ✅\n"
         txt += "\n🚜 Atividades Executadas:\n"
         for i in sel_atv: txt += f"- {i}\n"
-        if obs_extra:
-            for line in obs_extra.split('\n'):
+        if obs_casp:
+            for line in obs_casp.split('\n'):
                 if line.strip(): txt += f"- {line.strip()}\n"
         st.code(txt, language="text")
 
@@ -200,12 +231,11 @@ elif aba == "Atividades CASP":
 elif aba == "Gestão de Frota":
     st.title("⚙️ Gestão de Equipamentos")
     with st.expander("➕ Adicionar Novo Equipamento"):
-        c_add = st.selectbox("Categoria para adicionar", sorted(list(frota.keys())))
-        n_add = st.text_input("Novo Prefixo (Ex: ESE-048)")
+        c_add = st.selectbox("Categoria", sorted(list(frota.keys())))
+        n_add = st.text_input("Novo Prefixo")
         if st.button("Salvar Novo"):
             if n_add:
                 frota[c_add].append(n_add.upper()); salvar_dados(ARQUIVO_FROTA, frota); st.rerun()
-    # Outras funções de edição/exclusão aqui (mantendo a lógica do seu código original)
 
 # --- 5. GESTÃO DE PESSOAL ---
 elif aba == "Gestão de Pessoal":
@@ -214,8 +244,3 @@ elif aba == "Gestão de Pessoal":
     if st.button("Adicionar Colaborador"):
         if novo_colab:
             colaboradores.append(novo_colab.upper()); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
-    st.markdown("---")
-    colab_remover = st.selectbox("Remover Colaborador", colaboradores)
-    if st.button("Remover Permanentemente"):
-        if colab_remover:
-            colaboradores.remove(colab_remover); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
