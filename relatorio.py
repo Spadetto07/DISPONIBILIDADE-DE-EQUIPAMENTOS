@@ -76,63 +76,60 @@ lista_total = sorted([item for sublist in frota.values() for item in sublist])
 st.sidebar.title("🏗️ Menu Principal")
 aba = st.sidebar.radio("Escolha:", ["Equipamentos Utilizados", "Disponibilidade", "Atividades CASP", "Gestão de Frota", "Gestão de Pessoal"])
 
-# --- 1. EQUIPAMENTOS UTILIZADOS ---
+# --- 1. EQUIPAMENTOS UTILIZADOS (NOVO LAYOUT GRID) ---
 if aba == "Equipamentos Utilizados":
     st.title("📋 Relação de Equipamentos Utilizados")
+    
     col1, col2, col3 = st.columns(3)
     with col1: saudacao = st.selectbox("Saudação", ["Bom dia!!", "Boa tarde!!", "Boa noite!!"])
     with col2: letra = st.selectbox("Letra", ["A", "B", "C", "D"])
     with col3: turno = st.selectbox("Turno", ["06:00 às 18:00", "18:00 às 06:00"])
 
     st.subheader("👥 Equipe e Setores")
-    with st.expander("Definir Colaboradores por Função", expanded=True):
-        c1, c2 = st.columns(2)
-        with c1:
-            sup_casp = st.selectbox("CASP - Supervisor", colaboradores)
-            ctrl_casp = st.selectbox("CASP - Controlador", colaboradores)
-            enc_c8 = st.selectbox("CANTEIRO 8 - Encarregado", colaboradores)
-        with c2:
-            ctrl_c8 = st.selectbox("CANTEIRO 8 - Controlador", colaboradores)
-            enc_pas = st.selectbox("PAS - Encarregado", colaboradores)
-            ctrl_bacia = st.selectbox("Controlador da Bacia", colaboradores)
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        sup_casp = st.selectbox("CASP - Supervisor", colaboradores)
+        ctrl_casp = st.selectbox("CASP - Controlador", colaboradores)
+    with c2:
+        enc_c8 = st.selectbox("CANTEIRO 8 - Encarregado", colaboradores)
+        ctrl_c8 = st.selectbox("CANTEIRO 8 - Controlador", colaboradores)
+    with c3:
+        enc_pas = st.selectbox("PAS - Encarregado", colaboradores)
+        ctrl_bacia = st.selectbox("Controlador da Bacia", colaboradores)
             
-    st.subheader("🛠️ Executadores - ADM")
-    col_adm1, col_adm2 = st.columns(2)
-    with col_adm1:
-        exec1_nome = st.selectbox("Executador 1", colaboradores)
-        exec1_task = st.text_input("Tarefa 1", value="Confecção do caminhão seguro em frente ao pátio 6.")
-    with col_adm2:
-        exec2_nome = st.selectbox("Executador 2", colaboradores)
-        exec2_task = st.text_input("Tarefa 2", value="Limpeza pelo pátio 6, dando prioridade às canaletas.")
-
     st.markdown("---")
-    st.subheader("🚜 Seleção de Máquinas")
-    disp = lista_total.copy()
-    u24 = st.multiselect("(24 horas)", disp); disp = [e for e in disp if e not in u24]
-    u12 = st.multiselect("(12 horas)", disp); disp = [e for e in disp if e not in u12]
-    uadm = st.multiselect("(ADM)", disp); disp = [e for e in disp if e not in uadm]
-    uev = st.multiselect("(EVENTUAL)", disp)
+    st.subheader("🚜 Seleção de Máquinas (Clique para selecionar)")
+    
+    # Organizando por categoria em grids
+    u24, u12, uadm, uev = [], [], [], []
+    
+    for cat, máquinas in frota.items():
+        st.write(f"**{cat}**")
+        cols = st.columns(6) # 6 colunas para caber tudo na tela
+        for idx, m in enumerate(máquinas):
+            tag = formatar_prefixo(m)
+            with cols[idx % 6]:
+                # Usando selectbox pequeno ou checkbox para definir o regime
+                regime = st.selectbox(tag, ["-", "24h", "12h", "ADM", "EV"], key=f"util_{m}")
+                if regime == "24h": u24.append(m)
+                elif regime == "12h": u12.append(m)
+                elif regime == "ADM": uadm.append(m)
+                elif regime == "EV": uev.append(m)
+        st.markdown("---")
 
-    if st.button("GERAR RELATÓRIO WHATSAPP"):
+    if st.button("GERAR RELATÓRIO WHATSAPP", use_container_width=True):
         txt = f"{saudacao}\nCom segurança.\n\n{data_em_portugues()}\n\nSegue a relação de equipamentos utilizados:\n\n"
         txt += f"Letra: {letra}\nTurno: {turno}\n\n"
         
         if sup_casp or ctrl_casp:
             txt += "CASP\n"
             if sup_casp: txt += f"Supervisor: {limpar_nome_colab(sup_casp)}\n"
-            if ctrl_casp: txt += f"Controlador: {limpar_nome_colab(ctrl_casp)}\n"
-            txt += "\n"
+            if ctrl_casp: txt += f"Controlador: {limpar_nome_colab(ctrl_casp)}\n\n"
         if enc_c8 or ctrl_c8:
             txt += "CANTEIRO 8\n"
             if enc_c8: txt += f"Encarregado: {limpar_nome_colab(enc_c8)}\n"
-            if ctrl_c8: txt += f"Controlador: {limpar_nome_colab(ctrl_c8)}\n"
-            txt += "\n"
+            if ctrl_c8: txt += f"Controlador: {limpar_nome_colab(ctrl_c8)}\n\n"
         if enc_pas: txt += f"PAS\nEncarregado: {limpar_nome_colab(enc_pas)}\n\n"
-        if exec1_nome or exec2_nome:
-            txt += "EXECUTADORES - ADM\n"
-            if exec1_nome: txt += f"{limpar_nome_colab(exec1_nome).split()[0]}: {exec1_task}\n"
-            if exec2_nome: txt += f"{limpar_nome_colab(exec2_nome).split()[0]}: {exec2_task}\n"
-            txt += "\n"
         if ctrl_bacia: txt += f"CONTROLADOR DA BACIA: {limpar_nome_colab(ctrl_bacia)}\n\n"
             
         for tit, lista in [("(24 horas)", u24), ("(12 horas)", u12), ("(ADM)", uadm), ("(EVENTUAL)", uev)]:
@@ -142,64 +139,67 @@ if aba == "Equipamentos Utilizados":
                 txt += "\n"
         st.code(txt, language="text")
 
-# --- 2. DISPONIBILIDADE ---
+# --- 2. DISPONIBILIDADE (LAYOUT GRID DIRETO) ---
 elif aba == "Disponibilidade":
     st.title("🚜 Relatório de Disponibilidade")
-    rel_d = {}
+    st.write("Selecione os equipamentos que estão **COM DEFEITO**. Os não selecionados serão ✅ OK.")
+    
+    defeitos = {}
     for cat, lista in frota.items():
-        with st.expander(f"📂 {cat}", expanded=False):
-            itens = []
+        st.markdown(f"#### {cat}")
+        cols = st.columns(6)
+        for idx, e in enumerate(lista):
+            tag = formatar_prefixo(e)
+            with cols[idx % 6]:
+                if st.checkbox(tag, key=f"disp_check_{e}"):
+                    obs = st.text_input("Defeito", key=f"obs_disp_{e}", placeholder="Causa...")
+                    defeitos[e] = obs if obs else "Manutenção"
+        st.markdown("---")
+                
+    if st.button("GERAR DISPONIBILIDADE", use_container_width=True):
+        texto = f"DISPONIBILIDADE DE EQUIPAMENTOS - {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
+        for cat, lista in frota.items():
+            texto += f"*{cat}*\n"
             for e in lista:
                 tag = formatar_prefixo(e)
-                if st.checkbox(f"{tag}", key=f"disp_{cat}_{e}"):
-                    obs = st.text_input(f"Defeito para {tag}", key=f"obs_{cat}_{e}")
-                    itens.append(f"❌ {tag} - {obs}" if obs else f"✅ {tag}")
-            if itens: rel_d[cat] = itens
-                
-    if st.button("GERAR DISPONIBILIDADE"):
-        texto = f"DISPONIBILIDADE DE EQUIPAMENTOS - {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
-        for c, l in rel_d.items(): 
-            texto += f"{c}\n" + "\n".join(l) + "\n\n"
+                if e in defeitos:
+                    texto += f"❌ {tag} - {defeitos[e]}\n"
+                else:
+                    texto += f"✅ {tag}\n"
+            texto += "\n"
         st.code(texto, language="text")
 
 # --- 3. ATIVIDADES CASP (GRID DE CLIQUES) ---
 elif aba == "Atividades CASP":
     st.title("📝 Painel de Atividades CASP")
-    
-    # Cabeçalho
     c1, c2, c3 = st.columns(3)
     with c1: data_c = st.date_input("Data", datetime.now())
     with c2: letra_c = st.selectbox("Letra", ["A", "B", "C", "D"])
     with c3: turno_c = st.selectbox("Turno", ["06:00 às 18:00", "18:00 às 06:00"])
 
-    # Banco de Dados Completo
-    rec_lista = sorted(["Lama de Aciaria - 2B", "Lama de Alto Forno - P11", "Lama de ETF - P10", "Lama de Varrição - P10", "Resíduo de Varrição - P10", "Lama do Tratamento de Gás - P06", "Lama TK4 - P06", "Lama TK2 (Bacia 03) - P10", "Lama ETB - P6", "Lama do Lava Rodas", "Pó do Despoeiramento - P06", "Pó do Balão", "RESC - P06/P10", "Drypit - P01/P13", "Blende Siderúrgico", "Escória Granulada", "RPOF Venda", "FMM Calcita", "RH1/RH2 - UBC", "Refratário RIP - Rotatória"])
-    sai_lista = sorted(["Siderita (75 a 200mm)", "Drypit", "Ecocarbo I", "Ecocarbo II", "R-POF p/ PM", "R-POF Venda", "R-Mix p/ PM", "R-Bit p/ PM", "Lama AF (Cooproves)", "Lama AC (Cooproves)", "0a19 Tc5 Britado", "0a19 RCC", "Sucata TA de LD", "Sucata F1", "Sucata 3A8"])
-    atv_lista = ["Rotina de organização", "Carregamento e rechego", "Subida de Lama AF P11", "Corte de lama AC 2B", "Tombamento Siderita P13", "Blend Pó/RIND P06", "Limpeza canaletas/Wind Fence", "Segregação eletroímã", "Abastecimento Peneira", "Nivelamento de pátio", "Retirada de negativo"]
+    rec_lista = sorted(["Lama de Aciaria - 2B", "Lama de Alto Forno - P11", "Lama de ETF - P10", "Resíduo de Varrição - P10", "Lama do Tratamento de Gás - P06", "Lama TK4 - P06", "Lama ETB - P6", "RESC - P06/P10", "Drypit - P01/P13", "FMM Calcita", "RPOF Venda"])
+    sai_lista = sorted(["Siderita", "Drypit", "Ecocarbo I", "Ecocarbo II", "R-POF p/ PM", "R-Mix p/ PM", "R-Bit p/ PM", "Lama AF (Cooproves)", "0a19 Tc5", "0a19 RCC"])
+    atv_lista = ["Rotina de organização", "Carregamento e rechego", "Subida de Lama AF P11", "Corte de lama AC 2B", "Tombamento Siderita P13", "Blend Pó/RIND P06", "Limpeza canaletas/Wind Fence", "Segregação eletroímã", "Abastecimento Peneira", "Nivelamento de pátio"]
 
-    # Grid de Seleção
-    st.markdown("### 📥 Recebimento (Clique para selecionar)")
+    st.markdown("### 📥 Recebimento")
     sel_rec = []
     cols_rec = st.columns(4)
     for idx, item in enumerate(rec_lista):
         if cols_rec[idx % 4].checkbox(item, key=f"rec_{item}"): sel_rec.append(item)
 
-    st.markdown("---")
-    st.markdown("### 📤 Saída (Clique para selecionar)")
+    st.markdown("--- ### 📤 Saída")
     sel_sai = []
     cols_sai = st.columns(4)
     for idx, item in enumerate(sai_lista):
         if cols_sai[idx % 4].checkbox(item, key=f"sai_{item}"): sel_sai.append(item)
 
-    st.markdown("---")
-    st.markdown("### 🚜 Atividades (Clique para selecionar)")
+    st.markdown("--- ### 🚜 Atividades")
     sel_atv = []
     cols_atv = st.columns(3)
     for idx, item in enumerate(atv_lista):
         if cols_atv[idx % 3].checkbox(item, key=f"atv_{item}"): sel_atv.append(item)
     
-    st.markdown("---")
-    obs_c = st.text_area("Notas extras (uma por linha):")
+    obs_c = st.text_area("Notas extras:")
 
     if st.button("🚀 GERAR RELATÓRIO ATIVIDADES", use_container_width=True):
         txt = f"Boa tarde a todos, com segurança!\n\n*Atividades CASP*\n\n📅 Data: {data_c.strftime('%d/%m/%Y')}\n🔠 Letra: {letra_c}\n⏰ Turno: {turno_c}\n\n📥 Recebimento de Materiais:\n"
