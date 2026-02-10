@@ -74,13 +74,11 @@ lista_total = sorted([item for sublist in frota.values() for item in sublist])
 
 # --- NAVEGAÇÃO ---
 st.sidebar.title("🏗️ Menu Principal")
-# Adicionado "Atividades CASP" logo abaixo de Disponibilidade conforme solicitado
 aba = st.sidebar.radio("Escolha:", ["Equipamentos Utilizados", "Disponibilidade", "Atividades CASP", "Gestão de Frota", "Gestão de Pessoal"])
 
 # --- 1. EQUIPAMENTOS UTILIZADOS ---
 if aba == "Equipamentos Utilizados":
     st.title("📋 Relação de Equipamentos Utilizados")
-    
     col1, col2, col3 = st.columns(3)
     with col1: saudacao = st.selectbox("Saudação", ["Bom dia!!", "Boa tarde!!", "Boa noite!!"])
     with col2: letra = st.selectbox("Letra", ["A", "B", "C", "D"])
@@ -116,9 +114,4 @@ if aba == "Equipamentos Utilizados":
     uev = st.multiselect("(EVENTUAL)", disp)
 
     if st.button("GERAR RELATÓRIO WHATSAPP"):
-        txt = f"{saudacao}\nCom segurança.\n\n{data_em_portugues()}\n\nSegue a relação de equipamentos utilizados:\n\n"
-        txt += f"Letra: {letra}\nTurno: {turno}\n\n"
-        
-        if sup_casp or ctrl_casp:
-            txt += "CASP\n"
-            if sup_casp: txt += f"Supervisor: {limpar_nome_col
+        txt = f"{
