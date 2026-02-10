@@ -162,68 +162,54 @@ elif aba == "Disponibilidade":
             texto += f"{c}\n" + "\n".join(l) + "\n\n"
         st.code(texto, language="text")
 
-# --- 3. ATIVIDADES CASP (BANCO COMPLETO) ---
+# --- 3. ATIVIDADES CASP (GRID DE CLIQUES) ---
 elif aba == "Atividades CASP":
-    st.title("📝 Relatório de Atividades CASP")
+    st.title("📝 Painel de Atividades CASP")
+    
+    # Cabeçalho
     c1, c2, c3 = st.columns(3)
-    with c1: d_casp = st.date_input("Data", datetime.now())
-    with c2: l_casp = st.selectbox("Letra", ["A", "B", "C", "D"])
-    with c3: t_casp = st.selectbox("Turno", ["06:00 às 18:00", "18:00 às 06:00"])
+    with c1: data_c = st.date_input("Data", datetime.now())
+    with c2: letra_c = st.selectbox("Letra", ["A", "B", "C", "D"])
+    with c3: turno_c = st.selectbox("Turno", ["06:00 às 18:00", "18:00 às 06:00"])
 
-    # BANCO DE DADOS COMPLETO EXTRAÍDO DOS RELATÓRIOS
-    rec_lista = sorted([
-        "Lama de Aciaria - 2B", "Lama de Alto Forno - P11", "Lama de ETF - P10", "Lama de Varrição - P10",
-        "Resíduo de Varrição - P10", "Lama do Tratamento de Gás - P06", "Lama TK4 - P06", "Lama TK2 (Bacia 03) - P10",
-        "Lama ETB - P6", "Lama do Lava Rodas", "Pó do Despoeiramento (Kopron) - P06", "Pó do Balão",
-        "Pó do 'EP' (P10 vindo do P1/P2)", "Resíduo de Construção Civil (RESC) - P06/P10", "Resíduo de Escavação - P10",
-        "Resíduo de Raspagem de Solo", "Drypit - P01 / P13", "Blende Siderúrgico", "Geobag - P1", "Escória Granulada - P13",
-        "RPOF de Venda - P2A", "FMM Cascalho Calcítico (Calcita) - P1", "Sidercal - PAS", "RH1 / RH2 - UBC",
-        "Refratário da Coqueria / LTQ / RIP - Rotatória", "Hotcar - Galpão Kopron", "Lama de Escória - P10",
-        "Lixo de Briquetagem", "Rejeito Geral (Vale)", "Rejeito de Briquetagem (Vale)", "Resíduo com impureza 3a4 (Vale)",
-        "Água contaminada com óleo/graxa (Bacia P10)"
-    ])
+    # Banco de Dados Completo
+    rec_lista = sorted(["Lama de Aciaria - 2B", "Lama de Alto Forno - P11", "Lama de ETF - P10", "Lama de Varrição - P10", "Resíduo de Varrição - P10", "Lama do Tratamento de Gás - P06", "Lama TK4 - P06", "Lama TK2 (Bacia 03) - P10", "Lama ETB - P6", "Lama do Lava Rodas", "Pó do Despoeiramento - P06", "Pó do Balão", "RESC - P06/P10", "Drypit - P01/P13", "Blende Siderúrgico", "Escória Granulada", "RPOF Venda", "FMM Calcita", "RH1/RH2 - UBC", "Refratário RIP - Rotatória"])
+    sai_lista = sorted(["Siderita (75 a 200mm)", "Drypit", "Ecocarbo I", "Ecocarbo II", "R-POF p/ PM", "R-POF Venda", "R-Mix p/ PM", "R-Bit p/ PM", "Lama AF (Cooproves)", "Lama AC (Cooproves)", "0a19 Tc5 Britado", "0a19 RCC", "Sucata TA de LD", "Sucata F1", "Sucata 3A8"])
+    atv_lista = ["Rotina de organização", "Carregamento e rechego", "Subida de Lama AF P11", "Corte de lama AC 2B", "Tombamento Siderita P13", "Blend Pó/RIND P06", "Limpeza canaletas/Wind Fence", "Segregação eletroímã", "Abastecimento Peneira", "Nivelamento de pátio", "Retirada de negativo"]
+
+    # Grid de Seleção
+    st.markdown("### 📥 Recebimento (Clique para selecionar)")
+    sel_rec = []
+    cols_rec = st.columns(4)
+    for idx, item in enumerate(rec_lista):
+        if cols_rec[idx % 4].checkbox(item, key=f"rec_{item}"): sel_rec.append(item)
+
+    st.markdown("---")
+    st.markdown("### 📤 Saída (Clique para selecionar)")
+    sel_sai = []
+    cols_sai = st.columns(4)
+    for idx, item in enumerate(sai_lista):
+        if cols_sai[idx % 4].checkbox(item, key=f"sai_{item}"): sel_sai.append(item)
+
+    st.markdown("---")
+    st.markdown("### 🚜 Atividades (Clique para selecionar)")
+    sel_atv = []
+    cols_atv = st.columns(3)
+    for idx, item in enumerate(atv_lista):
+        if cols_atv[idx % 3].checkbox(item, key=f"atv_{item}"): sel_atv.append(item)
     
-    sai_lista = sorted([
-        "Siderita (75 a 200mm) - P03 / P13", "Drypit (Médio não magnético)", "Ecocarbo I", "Ecocarbo II",
-        "R-POF (p/ Pátio de Minério)", "R-POF (Venda)", "R-Mix (p/ Pátio de Minério)", 
-        "R-Bit (p/ Pátio de Minério ou Peneira Magnética)", "Lama de Alto Forno (Cooproves / PAS / Kopron)",
-        "Lama de Aciaria (Carregamento Cooproves)", "Resíduos Sólidos (Carregamento Cooproves)",
-        "Pó do Balão (p/ Pátio de Minério)", "0a19 Tc5 Britado (p/ PAS)", "0a19 RCC (Pilha 1E / 1F)",
-        "Refratário da Coqueria / Convertedor", "Sucata TA de LD", "Sucata F1", "Sucata 3A8 (p/ Pátio de Sucatas)",
-        "Sucata de RBIT", "Carvão Vegetal (SunCoke)", "Lastro de Coque", "Pilha 1E / 1C / 1F", "Válvulas R3",
-        "Degradado de Carbono (Cossipress)", "Minério Usina 08", "Siderita Zerada (P03)"
-    ])
-    
-    atv_lista = [
-        "Rotina de organização dos pátios, pilhas e baias", "Carregamento e rechego de materiais (otimização de espaço)",
-        "Subida de Lama de Alto Forno (Base para Topo) - P11", "Corte de lama de aciaria (2B) para carregamento Cooproves",
-        "Tombamento de Siderita (P13) para abertura de espaço para grelha", "Blend Pó de Despoeiramento x RIND Bruto (Kopron P06)",
-        "Mistura e Blend do Pré-Mix (Escavadeira/Carregadeira) - P06", "Abastecimento de Peneira Magnética ou Peneira Verde",
-        "Limpeza de canaletas laterais, Wind Fence e bacia da balança (P11/P13/P2B)", "Segregação de metálicos/sucata com eletroímã (Nordberg/P1)",
-        "Retirada de panos da grelha da peneira verde", "Nivelamento e regularização de pátio (Motoniveladora/Patrol/Trator)",
-        "Confecção de taludes de contenção e separação (ETF/P11/Kopron)", "Retirada de 'negativo' das pilhas (Siderita/Drypit/0a19)",
-        "Empilhamento de 0A19 / RCC (Antiga Bacia)", "Aterramento da baia da balança (Lama AC - 2B)",
-        "Identificação de caminho seguro (pedestais e cordas)", "Transporte de material de limpeza de bacia para pátio 11",
-        "Raspagem de caçambas com escavadeira (Vix)", "Corte de RBIT Peneirado (P03) para carregamento"
-    ]
+    st.markdown("---")
+    obs_c = st.text_area("Notas extras (uma por linha):")
 
-    st.subheader("📥 Recebimento de Materiais")
-    sel_rec = st.multiselect("Recebidos:", rec_lista)
-    st.subheader("📤 Saída de Materiais")
-    sel_sai = st.multiselect("Saídas:", sai_lista)
-    st.subheader("🚜 Atividades Executadas")
-    sel_atv = st.multiselect("Tarefas:", atv_lista)
-    obs_casp = st.text_area("Notas extras (uma por linha):")
-
-    if st.button("GERAR ATIVIDADES WHATSAPP"):
-        txt = f"Boa tarde a todos, com segurança!\n\n*Atividades CASP*\n\n📅 Data: {d_casp.strftime('%d/%m/%Y')}\n🔠 Letra: {l_casp}\n⏰ Turno: {t_casp}\n\n📥 Recebimento de Materiais:\n"
+    if st.button("🚀 GERAR RELATÓRIO ATIVIDADES", use_container_width=True):
+        txt = f"Boa tarde a todos, com segurança!\n\n*Atividades CASP*\n\n📅 Data: {data_c.strftime('%d/%m/%Y')}\n🔠 Letra: {letra_c}\n⏰ Turno: {turno_c}\n\n📥 Recebimento de Materiais:\n"
         for i in sel_rec: txt += f"- {i} ✅\n"
         txt += "\n📤 Saída de Materiais:\n"
         for i in sel_sai: txt += f"- {i} ✅\n"
         txt += "\n🚜 Atividades Executadas:\n"
         for i in sel_atv: txt += f"- {i}\n"
-        if obs_casp:
-            for line in obs_casp.split('\n'):
+        if obs_c:
+            for line in obs_c.split('\n'):
                 if line.strip(): txt += f"- {line.strip()}\n"
         st.code(txt, language="text")
 
@@ -244,3 +230,8 @@ elif aba == "Gestão de Pessoal":
     if st.button("Adicionar Colaborador"):
         if novo_colab:
             colaboradores.append(novo_colab.upper()); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
+    st.markdown("---")
+    colab_remover = st.selectbox("Remover Colaborador", colaboradores)
+    if st.button("Remover Permanentemente"):
+        if colab_remover:
+            colaboradores.remove(colab_remover); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
