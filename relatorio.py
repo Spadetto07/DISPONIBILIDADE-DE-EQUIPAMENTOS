@@ -79,6 +79,7 @@ aba = st.sidebar.radio("Escolha:", ["Equipamentos Utilizados", "Disponibilidade"
 # --- 1. EQUIPAMENTOS UTILIZADOS ---
 if aba == "Equipamentos Utilizados":
     st.title("📋 Relação de Equipamentos Utilizados")
+    
     col1, col2, col3 = st.columns(3)
     with col1: saudacao = st.selectbox("Saudação", ["Bom dia!!", "Boa tarde!!", "Boa noite!!"])
     with col2: letra = st.selectbox("Letra", ["A", "B", "C", "D"])
@@ -114,4 +115,107 @@ if aba == "Equipamentos Utilizados":
     uev = st.multiselect("(EVENTUAL)", disp)
 
     if st.button("GERAR RELATÓRIO WHATSAPP"):
-        txt = f"{
+        txt = f"{saudacao}\nCom segurança.\n\n{data_em_portugues()}\n\nSegue a relação de equipamentos utilizados:\n\n"
+        txt += f"Letra: {letra}\nTurno: {turno}\n\n"
+        
+        if sup_casp or ctrl_casp:
+            txt += "CASP\n"
+            if sup_casp: txt += f"Supervisor: {limpar_nome_colab(sup_casp)}\n"
+            if ctrl_casp: txt += f"Controlador: {limpar_nome_colab(ctrl_casp)}\n"
+            txt += "\n"
+        if enc_c8 or ctrl_c8:
+            txt += "CANTEIRO 8\n"
+            if enc_c8: txt += f"Encarregado: {limpar_nome_colab(enc_c8)}\n"
+            if ctrl_c8: txt += f"Controlador: {limpar_nome_colab(ctrl_c8)}\n"
+            txt += "\n"
+        if enc_pas: txt += f"PAS\nEncarregado: {limpar_nome_colab(enc_pas)}\n\n"
+        if exec1_nome or exec2_nome:
+            txt += "EXECUTADORES - ADM\n"
+            if exec1_nome: txt += f"{limpar_nome_colab(exec1_nome).split()[0]}: {exec1_task}\n"
+            if exec2_nome: txt += f"{limpar_nome_colab(exec2_nome).split()[0]}: {exec2_task}\n"
+            txt += "\n"
+        if ctrl_bacia: txt += f"CONTROLADOR DA BACIA: {limpar_nome_colab(ctrl_bacia)}\n\n"
+            
+        for tit, lista in [("(24 horas)", u24), ("(12 horas)", u12), ("(ADM)", uadm), ("(EVENTUAL)", uev)]:
+            if lista:
+                txt += f"{tit}\n"
+                for e in lista: txt += f"✅ {formatar_prefixo(e)} CASP\n"
+                txt += "\n"
+        st.code(txt, language="text")
+
+# --- 2. DISPONIBILIDADE ---
+elif aba == "Disponibilidade":
+    st.title("🚜 Relatório de Disponibilidade")
+    rel_d = {}
+    for cat, lista in frota.items():
+        with st.expander(f"📂 {cat}", expanded=False):
+            itens = []
+            for e in lista:
+                tag = formatar_prefixo(e)
+                if st.checkbox(f"{tag}", key=f"disp_{cat}_{e}"):
+                    obs = st.text_input(f"Defeito para {tag}", key=f"obs_{cat}_{e}")
+                    itens.append(f"❌ {tag} - {obs}" if obs else f"✅ {tag}")
+            if itens: rel_d[cat] = itens
+                
+    if st.button("GERAR DISPONIBILIDADE"):
+        texto = f"DISPONIBILIDADE DE EQUIPAMENTOS - {datetime.now().strftime('%d/%m/%Y %H:%M')}\n\n"
+        for c, l in rel_d.items(): 
+            texto += f"{c}\n" + "\n".join(l) + "\n\n"
+        st.code(texto, language="text")
+
+# --- 3. ATIVIDADES CASP ---
+elif aba == "Atividades CASP":
+    st.title("📝 Relatório de Atividades CASP")
+    c1, c2, c3 = st.columns(3)
+    with c1: d_casp = st.date_input("Data", datetime.now())
+    with c2: l_casp = st.selectbox("Letra", ["A", "B", "C", "D"])
+    with c3: t_casp = st.selectbox("Turno", ["06:00 às 18:00", "18:00 às 06:00"])
+
+    # Banco de materiais e atividades consolidado
+    rec_lista = sorted(["Lama de Aciaria - 2B", "Lama de Alto Forno - P11", "Lama de ETF", "Resíduo de Varrição", "Lama do Tratamento de Gás", "Blende Siderúrgico", "Lama TK4", "Pó do Despoeiramento", "Resíduo de Construção Civil", "Drypit - P01", "Escória Granulada", "RPOF Venda", "FMM Calcita"])
+    sai_lista = sorted(["Ecocarbo I", "Ecocarbo II", "Lama de ETF", "Drypit", "0a19 Tc5 Britado", "0a19 RCC", "Siderita", "R-POF", "R-Mix", "R-Bit", "Lama de Alto Forno (Cooproves)"])
+    atv_lista = ["Rotina de organização dos pátios, pilhas e baias", "Carregamento e rechego dos materiais (otimização de espaço)", "Subida de Lama AF Base/Topo P11", "Corte de lama de aciaria para carregamento", "Tombamento de Siderita (abertura de espaço)", "Blend Pó de Despoeiramento x RIND Bruto", "Limpeza de canaletas e Wind Fence", "Segregação de metálicos com eletroímã", "Abastecimento de Peneira Magnética/Verde"]
+
+    st.subheader("📥 Recebimento de Materiais")
+    sel_rec = st.multiselect("Selecione os materiais recebidos:", rec_lista)
+    st.subheader("📤 Saída de Materiais")
+    sel_sai = st.multiselect("Selecione os materiais expedidos:", sai_lista)
+    st.subheader("🚜 Atividades Executadas")
+    sel_atv = st.multiselect("Tarefas realizadas:", atv_lista)
+    obs_extra = st.text_area("Outras atividades/observações (uma por linha):")
+
+    if st.button("GERAR ATIVIDADES WHATSAPP"):
+        txt = f"Boa tarde a todos, com segurança!\n\n*Atividades CASP*\n\n📅 Data: {d_casp.strftime('%d/%m/%Y')}\n🔠 Letra: {l_casp}\n⏰ Turno: {t_casp}\n\n📥 Recebimento de Materiais:\n"
+        for i in sel_rec: txt += f"- {i} ✅\n"
+        txt += "\n📤 Saída de Materiais:\n"
+        for i in sel_sai: txt += f"- {i} ✅\n"
+        txt += "\n🚜 Atividades Executadas:\n"
+        for i in sel_atv: txt += f"- {i}\n"
+        if obs_extra:
+            for line in obs_extra.split('\n'):
+                if line.strip(): txt += f"- {line.strip()}\n"
+        st.code(txt, language="text")
+
+# --- 4. GESTÃO DE FROTA ---
+elif aba == "Gestão de Frota":
+    st.title("⚙️ Gestão de Equipamentos")
+    with st.expander("➕ Adicionar Novo Equipamento"):
+        c_add = st.selectbox("Categoria para adicionar", sorted(list(frota.keys())))
+        n_add = st.text_input("Novo Prefixo (Ex: ESE-048)")
+        if st.button("Salvar Novo"):
+            if n_add:
+                frota[c_add].append(n_add.upper()); salvar_dados(ARQUIVO_FROTA, frota); st.rerun()
+    # Outras funções de edição/exclusão aqui (mantendo a lógica do seu código original)
+
+# --- 5. GESTÃO DE PESSOAL ---
+elif aba == "Gestão de Pessoal":
+    st.title("👤 Gestão de Colaboradores")
+    novo_colab = st.text_input("Nome do Colaborador")
+    if st.button("Adicionar Colaborador"):
+        if novo_colab:
+            colaboradores.append(novo_colab.upper()); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
+    st.markdown("---")
+    colab_remover = st.selectbox("Remover Colaborador", colaboradores)
+    if st.button("Remover Permanentemente"):
+        if colab_remover:
+            colaboradores.remove(colab_remover); salvar_dados(ARQUIVO_COLAB, colaboradores); st.rerun()
