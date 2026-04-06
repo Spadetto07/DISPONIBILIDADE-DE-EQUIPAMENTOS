@@ -255,6 +255,19 @@ elif aba == "Gestão de Pessoal":
 elif aba == "Controle de Horímetro":
     st.title("⏱️ Controle de Horímetro (Padrão Diretoria)")
 
+    # Instrução visual protegendo contra erros de digitação de fração de hora
+    with st.expander("ℹ️ Como ler o horímetro (Guia Rápido)", expanded=False):
+        st.markdown("""
+        Para entender como ler o horímetro, basta observar o visor do equipamento, que normalmente apresenta os números que indicam o total de horas de funcionamento.  
+        Em muitos modelos, o horímetro mostra números semelhantes a este exemplo: **0005.4**
+        
+        Nesse caso, a leitura indica:  
+        * **0005** representa cinco horas de funcionamento.  
+        * **.4** representa fração da hora (aproximadamente 24 minutos).  
+        
+        Ou seja, a máquina operou por cerca de **5 horas e 24 minutos**.
+        """)
+
     # Motor de memória para armazenar os dados digitados antes de gerar o relatório
     if "apontamentos_horimetro" not in st.session_state:
         st.session_state.apontamentos_horimetro = []
@@ -310,7 +323,7 @@ elif aba == "Controle de Horímetro":
             st.rerun()
 
         st.markdown("---")
-        if st.button("🚀 GERAR RELATÓRIO DO CHEFE"):
+        if st.button("🚀 Relatório de Horímetro de Equipamentos"):
             txt = f"📅 Data: {datetime.now().strftime('%d/%m/%Y')}\n\n"
             turnos_presentes = ["ADM", "12 Horas", "24 Horas"]
 
