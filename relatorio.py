@@ -66,6 +66,16 @@ def data_em_portugues():
     agora = datetime.now()
     return f"{dias_semana[agora.strftime('%A')]}, dia {agora.strftime('%d')} de {meses[agora.strftime('%B')]} de {agora.strftime('%Y')}"
 
+def formatar_horas_minutos(horas_decimais):
+    horas_inteiras = int(horas_decimais)
+    minutos = round((horas_decimais - horas_inteiras) * 60)
+    if minutos == 60:
+        horas_inteiras += 1
+        minutos = 0
+    if minutos > 0:
+        return f"{horas_inteiras}h{minutos:02d}min"
+    return f"{horas_inteiras}h"
+
 # --- CARREGAMENTO ---
 frota_raw = carregar_dados(ARQUIVO_FROTA, FROTA_PADRAO)
 frota = {k: sorted(v) for k, v in sorted(frota_raw.items())}
@@ -255,19 +265,6 @@ elif aba == "Gestão de Pessoal":
 elif aba == "Controle de Horímetro":
     st.title("⏱️ Controle de Horímetro (Padrão Diretoria)")
 
-    # Instrução visual protegendo contra erros de digitação de fração de hora
-    with st.expander("ℹ️ Como ler o horímetro (Guia Rápido)", expanded=False):
-        st.markdown("""
-        Para entender como ler o horímetro, basta observar o visor do equipamento, que normalmente apresenta os números que indicam o total de horas de funcionamento.  
-        Em muitos modelos, o horímetro mostra números semelhantes a este exemplo: **0005.4**
-        
-        Nesse caso, a leitura indica:  
-        * **0005** representa cinco horas de funcionamento.  
-        * **.4** representa fração da hora (aproximadamente 24 minutos).  
-        
-        Ou seja, a máquina operou por cerca de **5 horas e 24 minutos**.
-        """)
-
     # Motor de memória para armazenar os dados digitados antes de gerar o relatório
     if "apontamentos_horimetro" not in st.session_state:
         st.session_state.apontamentos_horimetro = []
@@ -315,8 +312,9 @@ elif aba == "Controle de Horímetro":
             if ap['excecao']:
                 st.warning(f"**{ap['turno']}** | {tag} ({op_nome}) - CONTÍNUA: {ap['motivo']}")
             else:
-                trab = ap['h_final'] - ap['h_inicial']
-                st.write(f"**{ap['turno']}** | {tag} ({op_nome}) - Início: {ap['h_inicial']} | Fim: {ap['h_final']} | Trab: **{trab:.1f}h**")
+                trab_decimal = ap['h_final'] - ap['h_inicial']
+                trab_formatado = formatar_horas_minutos(trab_decimal)
+                st.write(f"**{ap['turno']}** | {tag} ({op_nome}) - Início: {ap['h_inicial']} | Fim: {ap['h_final']} | Trab: **{trab_formatado}**")
 
         if st.button("🗑️ Limpar Todos os Dados"):
             st.session_state.apontamentos_horimetro = []
@@ -349,8 +347,9 @@ elif aba == "Controle de Horímetro":
                         if a["excecao"]:
                             txt += "Hora inicial: ( )\nHora final: ( )\n\n"
                         else:
-                            trab = a['h_final'] - a['h_inicial']
-                            txt += f"Hora inicial: ({a['h_inicial']:.1f})\nHora final: ({a['h_final']:.1f})\n⏱ Horas trabalhadas: {trab:.1f}h\n\n"
+                            trab_decimal = a['h_final'] - a['h_inicial']
+                            trab_formatado = formatar_horas_minutos(trab_decimal)
+                            txt += f"Hora inicial: ({a['h_inicial']:.1f})\nHora final: ({a['h_final']:.1f})\n⏱ Horas trabalhadas: {trab_formatado}\n\n"
 
                 if caminhao:
                     txt += "━━━━━━━━━━━━━━\n🚛 CAMINHÃO\n\n"
@@ -361,8 +360,9 @@ elif aba == "Controle de Horímetro":
                         if a["excecao"]:
                             txt += "Hora inicial: ( )\nHora final: ( )\n\n"
                         else:
-                            trab = a['h_final'] - a['h_inicial']
-                            txt += f"Hora inicial: ({a['h_inicial']:.1f})\nHora final: ({a['h_final']:.1f})\n⏱ Horas trabalhadas: {trab:.1f}h\n\n"
+                            trab_decimal = a['h_final'] - a['h_inicial']
+                            trab_formatado = formatar_horas_minutos(trab_decimal)
+                            txt += f"Hora inicial: ({a['h_inicial']:.1f})\nHora final: ({a['h_final']:.1f})\n⏱ Horas trabalhadas: {trab_formatado}\n\n"
 
                 if obs:
                     txt += "━━━━━━━━━━━━━━\n🏮 Observação:\n"
