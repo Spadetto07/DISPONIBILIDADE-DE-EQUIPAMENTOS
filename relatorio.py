@@ -74,7 +74,7 @@ lista_total = sorted([item for sublist in frota.values() for item in sublist])
 
 # --- NAVEGAÇÃO ---
 st.sidebar.title("🏗️ Menu Principal")
-aba = st.sidebar.radio("Escolha:", ["Equipamentos Utilizados", "Disponibilidade", "Atividades CASP", "Gestão de Frota", "Gestão de Pessoal"])
+aba = st.sidebar.radio("Escolha:", ["Equipamentos Utilizados", "Disponibilidade", "Atividades CASP", "Gestão de Frota", "Gestão de Pessoal", "Controle de Horímetro"])
 
 # --- 1. EQUIPAMENTOS UTILIZADOS ---
 if aba == "Equipamentos Utilizados":
@@ -104,8 +104,6 @@ if aba == "Equipamentos Utilizados":
     if "maquinas_regime" not in st.session_state:
         st.session_state.maquinas_regime = {}
 
-    # LÓGICA DE EXCLUSIVIDADE: 
-    # Mostra legendas para VOCÊ escolher na tela, mas valida se já existe em outro regime
     for categoria, lista_m in frota.items():
         st.markdown(f"**{categoria}S**")
         for m in lista_m:
@@ -113,7 +111,6 @@ if aba == "Equipamentos Utilizados":
             
             regime_atual = st.session_state.maquinas_regime.get(m)
             
-            # Se a máquina está em outro regime (que não o selecionado no 'pincel'), ela fica desabilitada
             is_disabled = regime_atual is not None and regime_atual != regime_pincel
             label_extra = f" (já está em {regime_atual})" if is_disabled else ""
             
@@ -122,7 +119,6 @@ if aba == "Equipamentos Utilizados":
             if st.checkbox(f"{tag}{label_extra}", value=checked, key=f"ut_{m}_{regime_pincel}", disabled=is_disabled):
                 st.session_state.maquinas_regime[m] = regime_pincel
             elif not is_disabled:
-                # Se desmarcar o que estava marcado no regime atual
                 if m in st.session_state.maquinas_regime and st.session_state.maquinas_regime[m] == regime_pincel:
                     del st.session_state.maquinas_regime[m]
         st.write("")
@@ -136,7 +132,6 @@ if aba == "Equipamentos Utilizados":
             if sup_casp: txt += f"Supervisor: {limpar_nome_colab(sup_casp)}\n"
             if ctrl_casp: txt += f"Controlador: {limpar_nome_colab(ctrl_casp)}\n\n"
         
-        # RELATÓRIO FORMATADO CONFORME A FOTO: Agrupado por Regime
         for titulo_regime, chave in [("(24 horas)", "24h"), ("(12 horas)", "12h"), ("(ADM)", "ADM"), ("(EVENTUAL)", "EV")]:
             maquinas_ativas = [m for m, r in st.session_state.maquinas_regime.items() if r == chave]
             if maquinas_ativas:
@@ -188,7 +183,7 @@ elif aba == "Atividades CASP":
     sel_atv = [i for i in atv_lista if st.checkbox(i, key=f"a_{i}")]
     
     if st.button("🚀 GERAR RELATÓRIO ATIVIDADES"):
-        txt = f"Boa tarde a todos, com segurança!\n\n*Atividades CASP*\n\n📅 *Data:* {d_casp.strftime('%d/%m/%Y')}\n🔠 *Letra:* {l_casp}\n⏰ *Turno:* {t_casp}\n\n📥 *Recebimento de Materiais:*\n"
+        txt = f"Boa tarde a todos, com segurança!\n\n*Atividades CASP*\n\n📅 *Data:* {d_c.strftime('%d/%m/%Y')}\n🔠 *Letra:* {l_c}\n⏰ *Turno:* {t_c}\n\n📥 *Recebimento de Materiais:*\n"
         for i in sorted(sel_rec): txt += f"- {i} ✅\n"
         txt += "\n📤 *Saída de Materiais:*\n"
         for i in sorted(sel_sai): txt += f"- {i} ✅\n"
@@ -255,4 +250,114 @@ elif aba == "Gestão de Pessoal":
                 colaboradores.remove(colab_remover)
                 salvar_dados(ARQUIVO_COLAB, colaboradores)
                 st.rerun()
-                
+
+# --- 6. CONTROLE DE HORÍMETRO ---
+elif aba == "Controle de Horímetro":
+    st.title("⏱️ Controle de Horímetro (Padrão Diretoria)")
+
+    # Motor de memória para armazenar os dados digitados antes de gerar o relatório
+    if "apontamentos_horimetro" not in st.session_state:
+        st.session_state.apontamentos_horimetro = []
+
+    with st.expander("➕ Inserir Apontamento do Check-list", expanded=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            turno_h = st.selectbox("Turno de Operação", ["ADM", "12 Horas", "24 Horas"])
+            equip_h = st.selectbox("Selecione a Máquina/Caminhão", lista_total)
+        with col2:
+            op_h = st.selectbox("Operador/Motorista", colaboradores)
+            excecao_h = st.checkbox("Máquina em operação contínua (Sem leitura de horímetro)")
+
+        col3, col4, col5 = st.columns(3)
+        with col3:
+            h_inicial = st.number_input("Horímetro Inicial", min_value=0.0, format="%.1f", step=0.1, disabled=excecao_h)
+        with col4:
+            h_final = st.number_input("Horímetro Final", min_value=0.0, format="%.1f", step=0.1, disabled=excecao_h)
+        with col5:
+            motivo_exc = st.text_input("Motivo (Se contínua)", placeholder="Ex: executando puxada de rolamento", disabled=not excecao_h)
+
+        if st.button("Adicionar à Lista do Dia"):
+            if not excecao_h and h_final < h_inicial:
+                st.error("Erro Crítico: O horímetro final não pode ser menor que o inicial.")
+            else:
+                st.session_state.apontamentos_horimetro.append({
+                    "turno": turno_h,
+                    "equipamento": equip_h,
+                    "operador": op_h,
+                    "h_inicial": h_inicial,
+                    "h_final": h_final,
+                    "excecao": excecao_h,
+                    "motivo": motivo_exc
+                })
+                st.success(f"{formatar_prefixo(equip_h)} computado com sucesso!")
+
+    st.markdown("---")
+    st.subheader("📋 Apontamentos Armazenados")
+    if not st.session_state.apontamentos_horimetro:
+        st.info("Nenhum equipamento lançado ainda. Utilize o formulário acima.")
+    else:
+        for i, ap in enumerate(st.session_state.apontamentos_horimetro):
+            tag = formatar_prefixo(ap['equipamento'])
+            op_nome = limpar_nome_colab(ap['operador'])
+            if ap['excecao']:
+                st.warning(f"**{ap['turno']}** | {tag} ({op_nome}) - CONTÍNUA: {ap['motivo']}")
+            else:
+                trab = ap['h_final'] - ap['h_inicial']
+                st.write(f"**{ap['turno']}** | {tag} ({op_nome}) - Início: {ap['h_inicial']} | Fim: {ap['h_final']} | Trab: **{trab:.1f}h**")
+
+        if st.button("🗑️ Limpar Todos os Dados"):
+            st.session_state.apontamentos_horimetro = []
+            st.rerun()
+
+        st.markdown("---")
+        if st.button("🚀 GERAR RELATÓRIO DO CHEFE"):
+            txt = f"📅 Data: {datetime.now().strftime('%d/%m/%Y')}\n\n"
+            turnos_presentes = ["ADM", "12 Horas", "24 Horas"]
+
+            for t in turnos_presentes:
+                aps_turno = [a for a in st.session_state.apontamentos_horimetro if a["turno"] == t]
+                if not aps_turno:
+                    continue
+
+                txt += f"━━━━━━━━━━━━━━\n📊 RELATÓRIO DE TURNO {t.upper()}\nControle de Horímetro dos Equipamentos\n━━━━━━━━━━━━━━\n\n"
+
+                # Identificação inteligente: Caminhão x Máquina
+                caminhoes_lista = frota.get("CAMINHÃO", [])
+                operacao = [a for a in aps_turno if a["equipamento"] not in caminhoes_lista]
+                caminhao = [a for a in aps_turno if a["equipamento"] in caminhoes_lista]
+                obs = [a for a in aps_turno if a["excecao"]]
+
+                if operacao:
+                    txt += "🚜 OPERAÇÃO\n\n"
+                    for a in operacao:
+                        tag = formatar_prefixo(a["equipamento"])
+                        op_nome = limpar_nome_colab(a['operador'])
+                        txt += f"* {tag}\nOP: {op_nome}\n"
+                        if a["excecao"]:
+                            txt += "Hora inicial: ( )\nHora final: ( )\n\n"
+                        else:
+                            trab = a['h_final'] - a['h_inicial']
+                            txt += f"Hora inicial: ({a['h_inicial']:.1f})\nHora final: ({a['h_final']:.1f})\n⏱ Horas trabalhadas: {trab:.1f}h\n\n"
+
+                if caminhao:
+                    txt += "━━━━━━━━━━━━━━\n🚛 CAMINHÃO\n\n"
+                    for a in caminhao:
+                        tag = formatar_prefixo(a["equipamento"])
+                        op_nome = limpar_nome_colab(a['operador'])
+                        txt += f"* {tag}\nMotorista: {op_nome}\n"
+                        if a["excecao"]:
+                            txt += "Hora inicial: ( )\nHora final: ( )\n\n"
+                        else:
+                            trab = a['h_final'] - a['h_inicial']
+                            txt += f"Hora inicial: ({a['h_inicial']:.1f})\nHora final: ({a['h_final']:.1f})\n⏱ Horas trabalhadas: {trab:.1f}h\n\n"
+
+                if obs:
+                    txt += "━━━━━━━━━━━━━━\n🏮 Observação:\n"
+                    for a in obs:
+                        tag = formatar_prefixo(a["equipamento"])
+                        op_nome = limpar_nome_colab(a['operador'])
+                        motivo = a['motivo'] if a['motivo'] else "permanece em operação na planta."
+                        txt += f"A {tag} ({op_nome}) {motivo}\n"
+                    txt += "\n"
+
+            st.code(txt, language="text")
